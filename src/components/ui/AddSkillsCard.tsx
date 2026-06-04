@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/client";
 
 interface Skill {
-  skill: string;
-  experience: string;
+  _id: string;
+  skillName: string;
+  experience: number;
   level: string;
 }
 
@@ -27,41 +29,67 @@ export default function SkillsCard(): React.JSX.Element {
     muted: "#6B7280",
   };
 
-  const [skillName, setSkillName] = useState<string>("");
-  const [experience, setExperience] = useState<string>("");
-  const [level, setLevel] = useState<string>("");
-
+  const [skillName, setSkillName] = useState("");
+  const [experience, setExperience] = useState("");
+  const [level, setLevel] = useState("");
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const addSkill = (): void => {
-    if (!skillName.trim() || !experience || !level) {
-      return;
+  const loadSkills = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch<{ skills: Skill[] }>("/api/skills");
+      setSkills(data.skills);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load skills");
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    setSkills((prev) => [
-      ...prev,
-      {
-        skill: skillName,
-        experience,
-        level,
-      },
-    ]);
+  useEffect(() => {
+    loadSkills();
+  }, [loadSkills]);
 
-    setSkillName("");
-    setExperience("");
-    setLevel("");
+  const addSkill = async (): Promise<void> => {
+    if (!skillName.trim() || !experience || !level) return;
+
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch("/api/skills", {
+        method: "POST",
+        body: JSON.stringify({
+          skillName,
+          experience: Number(experience),
+          level,
+        }),
+      });
+      setSkillName("");
+      setExperience("");
+      setLevel("");
+      await loadSkills();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add skill");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const removeSkill = (index: number): void => {
-    setSkills((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (): Promise<void> => {
-    console.log("Skills Payload:", skills);
-
-    // await axios.post("/api/skills", { skills });
-
-    alert("Ready for API call");
+  const removeSkill = async (id: string): Promise<void> => {
+    setSaving(true);
+    setError("");
+    try {
+      await apiFetch(`/api/skills/${id}`, { method: "DELETE" });
+      await loadSkills();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete skill");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -74,16 +102,12 @@ export default function SkillsCard(): React.JSX.Element {
         boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       }}
     >
-      <h3
-        style={{
-          margin: "0 0 20px",
-          color: T.text,
-        }}
-      >
-        My Skill Sets
-      </h3>
+      <h3 style={{ margin: "0 0 20px", color: T.text }}>My Skill Sets</h3>
 
-      {/* Add Skill Row */}
+      {error && (
+        <p style={{ color: T.red, fontSize: 13, marginBottom: 12 }}>{error}</p>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -96,9 +120,7 @@ export default function SkillsCard(): React.JSX.Element {
         <input
           placeholder="Skill Name"
           value={skillName}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setSkillName(e.target.value)
-          }
+          onChange={(e) => setSkillName(e.target.value)}
           style={{
             flex: "2 1 250px",
             minWidth: 180,
@@ -106,33 +128,25 @@ export default function SkillsCard(): React.JSX.Element {
             borderRadius: 8,
             padding: "10px 12px",
             fontSize: 14,
-            boxSizing: "border-box",
           }}
         />
-
         <input
           type="number"
           min="0"
           placeholder="Years"
           value={experience}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setExperience(e.target.value)
-          }
+          onChange={(e) => setExperience(e.target.value)}
           style={{
             width: 90,
             border: `1px solid ${T.border}`,
             borderRadius: 8,
             padding: "10px 12px",
             fontSize: 14,
-            boxSizing: "border-box",
           }}
         />
-
         <select
           value={level}
-          onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-            setLevel(e.target.value)
-          }
+          onChange={(e) => setLevel(e.target.value)}
           style={{
             width: 170,
             border: `1px solid ${T.border}`,
@@ -140,7 +154,6 @@ export default function SkillsCard(): React.JSX.Element {
             padding: "10px 12px",
             fontSize: 14,
             background: "#fff",
-            boxSizing: "border-box",
           }}
         >
           <option value="">Select Level</option>
@@ -149,10 +162,10 @@ export default function SkillsCard(): React.JSX.Element {
           <option value="Advanced">Advanced</option>
           <option value="Expert">Expert</option>
         </select>
-
         <button
           type="button"
           onClick={addSkill}
+          disabled={saving}
           style={{
             background: T.red,
             color: "#fff",
@@ -160,81 +173,55 @@ export default function SkillsCard(): React.JSX.Element {
             borderRadius: 8,
             padding: "10px 18px",
             fontWeight: 600,
-            cursor: "pointer",
-            whiteSpace: "nowrap",
+            cursor: saving ? "not-allowed" : "pointer",
           }}
         >
-          Add Skill
+          {saving ? "Saving..." : "Add Skill"}
         </button>
       </div>
 
-      {/* Skills Table */}
-      {skills.length > 0 && (
-        <>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              marginBottom: 20,
-            }}
-          >
-            <thead>
-              <tr style={{ background: T.redLight }}>
-                <th style={thStyle(T)}>Skill</th>
-                <th style={thStyle(T)}>Experience</th>
-                <th style={thStyle(T)}>Level</th>
-                <th style={thStyle(T)}>Action</th>
+      {loading ? (
+        <p style={{ color: T.muted }}>Loading skills...</p>
+      ) : skills.length > 0 ? (
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: T.redLight }}>
+              <th style={thStyle(T)}>Skill</th>
+              <th style={thStyle(T)}>Experience</th>
+              <th style={thStyle(T)}>Level</th>
+              <th style={thStyle(T)}>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {skills.map((item) => (
+              <tr key={item._id}>
+                <td style={tdStyle(T)}>{item.skillName}</td>
+                <td style={tdStyle(T)}>
+                  {item.experience} Year{item.experience > 1 ? "s" : ""}
+                </td>
+                <td style={tdStyle(T)}>{item.level}</td>
+                <td style={tdStyle(T)}>
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(item._id)}
+                    disabled={saving}
+                    style={{
+                      border: "none",
+                      background: "transparent",
+                      color: T.red,
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Remove
+                  </button>
+                </td>
               </tr>
-            </thead>
-
-            <tbody>
-              {skills.map((item, index) => (
-                <tr key={index}>
-                  <td style={tdStyle(T)}>{item.skill}</td>
-
-                  <td style={tdStyle(T)}>
-                    {item.experience} Year
-                    {Number(item.experience) > 1 ? "s" : ""}
-                  </td>
-
-                  <td style={tdStyle(T)}>{item.level}</td>
-
-                  <td style={tdStyle(T)}>
-                    <button
-                      type="button"
-                      onClick={() => removeSkill(index)}
-                      style={{
-                        border: "none",
-                        background: "transparent",
-                        color: T.red,
-                        cursor: "pointer",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <button
-            type="button"
-            onClick={handleSubmit}
-            style={{
-              background: T.red,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "12px 24px",
-              cursor: "pointer",
-              fontWeight: 700,
-            }}
-          >
-            Submit Skills
-          </button>
-        </>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p style={{ color: T.muted, fontSize: 14 }}>No skills added yet.</p>
       )}
     </div>
   );

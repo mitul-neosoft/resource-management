@@ -1,17 +1,5 @@
-import "@mantine/core/styles.css";
-import { MantineProvider } from "@mantine/core";
-import "remixicon/fonts/remixicon.css";
+import { redirect } from "next/navigation";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <html lang="en">
-      <body>
-        <MantineProvider>{children}</MantineProvider>
-      </body>
-    </html>
-  );
+export default function HomePage() {
+  redirect("/login");
 }

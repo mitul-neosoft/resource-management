@@ -1,12 +1,27 @@
 "use client";
 
-interface Employee {
-  name: string;
+interface DashboardUser {
+  firstName: string;
+  lastName: string;
   email: string;
   employeeId: string;
   designation: string;
-  resignDate: string;
-  clientContractEndDate: string;
+  resignDate?: string;
+  clientContractEndDate?: string;
+}
+
+interface DashboardStats {
+  benchDays: number;
+  noticeDaysLeft: number;
+  totalSkills: number;
+  learningProgress: number;
+}
+
+interface EmployeeWelcomeCardProps {
+  user?: DashboardUser;
+  stats?: DashboardStats;
+  loading?: boolean;
+  error?: string;
 }
 
 interface StatTileProps {
@@ -17,15 +32,42 @@ interface StatTileProps {
 
 const NOTICE_PERIOD_DAYS = 90;
 
-export default function EmployeeWelcomeCard(): React.JSX.Element {
-  const employee: Employee = {
-    name: "Shubham Mohite",
-    email: "shubham.mohite@company.com",
-    employeeId: "EMP-1024",
-    designation: "Senior Full Stack Developer",
-    resignDate: "2026-05-01",
-    clientContractEndDate: "2026-05-30",
-  };
+export default function EmployeeWelcomeCard({
+  user,
+  stats,
+  loading,
+  error,
+}: EmployeeWelcomeCardProps): React.JSX.Element {
+  if (loading) {
+    return (
+      <div
+        style={{
+          background: "linear-gradient(135deg, #D32F2F 0%, #B71C1C 100%)",
+          borderRadius: 20,
+          padding: 32,
+          color: "#fff",
+          minHeight: 200,
+        }}
+      >
+        Loading dashboard...
+      </div>
+    );
+  }
+
+  if (error || !user) {
+    return (
+      <div
+        style={{
+          background: "#FEE2E2",
+          borderRadius: 20,
+          padding: 32,
+          color: "#991B1B",
+        }}
+      >
+        {error || "Unable to load employee data."}
+      </div>
+    );
+  }
 
   const normalizeDate = (date: Date | string): Date => {
     const d = new Date(date);
@@ -35,41 +77,30 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
 
   const getDaysDiff = (start: Date, end: Date): number => {
     const msPerDay = 1000 * 60 * 60 * 24;
-
-    const diff = (start.getTime() - end.getTime()) / msPerDay;
-
-    return Math.round(diff);
+    return Math.round((start.getTime() - end.getTime()) / msPerDay);
   };
 
   const getNoticeDaysLeft = (): number | null => {
-    if (!employee.resignDate) return null;
-
-    const resignDate = normalizeDate(employee.resignDate);
-
+    if (!user.resignDate) return stats?.noticeDaysLeft ?? null;
+    const resignDate = normalizeDate(user.resignDate);
     const noticeEndDate = new Date(resignDate);
     noticeEndDate.setDate(noticeEndDate.getDate() + NOTICE_PERIOD_DAYS);
-
     const today = normalizeDate(new Date());
-
     const diff = getDaysDiff(noticeEndDate, today);
-
     return diff > 0 ? diff : 0;
   };
 
   const getBenchDays = (): number | null => {
-    if (!employee.clientContractEndDate) return null;
-
-    const contractEnd = normalizeDate(employee.clientContractEndDate);
-
+    if (!user.clientContractEndDate) return stats?.benchDays ?? null;
+    const contractEnd = normalizeDate(user.clientContractEndDate);
     const today = normalizeDate(new Date());
-
     const diff = getDaysDiff(today, contractEnd);
-
     return diff > 0 ? diff : 0;
   };
 
   const noticeDaysLeft = getNoticeDaysLeft();
   const benchDays = getBenchDays();
+  const fullName = `${user.firstName} ${user.lastName}`;
 
   return (
     <div
@@ -82,7 +113,6 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
         fontFamily: "Arial",
       }}
     >
-      {/* Header */}
       <div>
         <p
           style={{
@@ -96,29 +126,14 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
         >
           Welcome Back
         </p>
-
-        <h1
-          style={{
-            margin: "8px 0 6px",
-            fontSize: 32,
-            fontWeight: 800,
-          }}
-        >
-          {employee.name}
+        <h1 style={{ margin: "8px 0 6px", fontSize: 32, fontWeight: 800 }}>
+          {fullName}
         </h1>
-
-        <p
-          style={{
-            margin: 0,
-            fontSize: 15,
-            color: "rgba(255,255,255,0.85)",
-          }}
-        >
-          {employee.designation}
+        <p style={{ margin: 0, fontSize: 15, color: "rgba(255,255,255,0.85)" }}>
+          {user.designation}
         </p>
       </div>
 
-      {/* Details */}
       <div
         style={{
           display: "flex",
@@ -129,11 +144,10 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
           color: "rgba(255,255,255,0.8)",
         }}
       >
-        <span>ID: {employee.employeeId}</span>
-        <span>Email: {employee.email}</span>
+        <span>ID: {user.employeeId}</span>
+        <span>Email: {user.email}</span>
       </div>
 
-      {/* Stats */}
       <div
         style={{
           display: "grid",
@@ -143,13 +157,8 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
         }}
       >
         {benchDays !== null && (
-          <StatTile
-            value={benchDays}
-            label="Days on Bench"
-            valueColor="#FFFFFF"
-          />
+          <StatTile value={benchDays} label="Days on Bench" valueColor="#FFFFFF" />
         )}
-
         {noticeDaysLeft !== null && (
           <StatTile
             value={noticeDaysLeft}
@@ -157,16 +166,26 @@ export default function EmployeeWelcomeCard(): React.JSX.Element {
             valueColor="#FFD54F"
           />
         )}
+        {stats && (
+          <>
+            <StatTile
+              value={stats.totalSkills}
+              label="Total Skills"
+              valueColor="#FFFFFF"
+            />
+            <StatTile
+              value={stats.learningProgress}
+              label="Learning Progress %"
+              valueColor="#A5D6A7"
+            />
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function StatTile({
-  value,
-  label,
-  valueColor,
-}: StatTileProps): React.JSX.Element {
+function StatTile({ value, label, valueColor }: StatTileProps): React.JSX.Element {
   return (
     <div
       style={{
@@ -178,16 +197,7 @@ function StatTile({
         textAlign: "center",
       }}
     >
-      <div
-        style={{
-          fontSize: 38,
-          fontWeight: 800,
-          color: valueColor,
-        }}
-      >
-        {value}
-      </div>
-
+      <div style={{ fontSize: 38, fontWeight: 800, color: valueColor }}>{value}</div>
       <div
         style={{
           marginTop: 8,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Anchor,
   Box,
@@ -16,6 +17,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { apiFetch } from "@/lib/api/client";
 
 interface LoginForm {
   email: string;
@@ -29,74 +31,58 @@ interface LoginErrors {
 }
 
 export default function LoginPage() {
+  const router = useRouter();
   const [form, setForm] = useState<LoginForm>({
     email: "",
     password: "",
     remember: false,
   });
-
   const [errors, setErrors] = useState<LoginErrors>({});
-
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleChange = <K extends keyof LoginForm>(
     field: K,
-    value: LoginForm[K],
+    value: LoginForm[K]
   ) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [field]: "",
-    }));
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setApiError("");
   };
 
   const validate = (): boolean => {
     const newErrors: LoginErrors = {};
-
     if (!form.email) {
       newErrors.email = "Email is required";
     } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
       newErrors.email = "Enter a valid email";
     }
-
     if (!form.password) {
       newErrors.password = "Password is required";
     } else if (form.password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
     }
-
     setErrors(newErrors);
-
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (): Promise<void> => {
     if (!validate()) return;
-
     setLoading(true);
-
-    const payload = {
-      email: form.email,
-      password: form.password,
-      remember: form.remember,
-    };
+    setApiError("");
 
     try {
-      console.log("LOGIN API PAYLOAD:", payload);
-
-      // const response = await fetch("/api/auth/login", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
+      await apiFetch("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+        }),
+      });
+      router.push("/dashboard");
+      router.refresh();
     } catch (error) {
-      console.error(error);
+      setApiError(error instanceof Error ? error.message : "Login failed");
     } finally {
       setLoading(false);
     }
@@ -111,7 +97,6 @@ export default function LoginPage() {
         background: "#fff",
       }}
     >
-      {/* LEFT PANEL */}
       <Box
         style={{
           width: "42%",
@@ -129,7 +114,6 @@ export default function LoginPage() {
             <Title order={1} fw={800}>
               Welcome Back
             </Title>
-
             <Text c="dimmed" size="md">
               Sign in to continue to your account
             </Text>
@@ -143,6 +127,12 @@ export default function LoginPage() {
             style={{ borderColor: "#f1f3f5" }}
           >
             <Stack gap="md">
+              {apiError && (
+                <Text c="red" size="sm">
+                  {apiError}
+                </Text>
+              )}
+
               <TextInput
                 label="Email"
                 placeholder="john@example.com"
@@ -173,7 +163,6 @@ export default function LoginPage() {
                     handleChange("remember", e.currentTarget.checked)
                   }
                 />
-
                 <Anchor
                   href="/forgot-password"
                   c="#eb0f5b"
@@ -199,7 +188,7 @@ export default function LoginPage() {
               </Button>
 
               <Text ta="center" size="sm" c="dimmed">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Anchor href="/register" fw={600} c="#eb0f5b" underline="never">
                   Register
                 </Anchor>
@@ -209,7 +198,6 @@ export default function LoginPage() {
         </Container>
       </Box>
 
-      {/* CURVED DIVIDER (unchanged) */}
       <Box
         visibleFrom="md"
         style={{
@@ -224,11 +212,7 @@ export default function LoginPage() {
         <svg
           viewBox="0 0 220 1000"
           preserveAspectRatio="none"
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "block",
-          }}
+          style={{ width: "100%", height: "100%", display: "block" }}
         >
           <path
             d="M 0 0 C 180 120, 180 320, 70 500 C -40 680, -40 880, 180 1000 L 220 1000 L 220 0 Z"
@@ -243,7 +227,6 @@ export default function LoginPage() {
         </svg>
       </Box>
 
-      {/* RIGHT PANEL (unchanged) */}
       <Stack align="center" maw={700}>
         <Box
           style={{
@@ -257,14 +240,11 @@ export default function LoginPage() {
         >
           <Image src="/images/emp1.png" alt="employee" h={420} fit="contain" />
         </Box>
-
         <Title order={2} c="white" ta="center" mt="lg" fw={800}>
           Empower Your Team
         </Title>
-
         <Text ta="center" size="lg" maw={500} c="rgba(255,255,255,0.85)">
-          Collaborate, manage projects and streamline workflows with a modern
-          platform built for ambitious teams.
+          Collaborate, manage projects and streamline workflows.
         </Text>
       </Stack>
     </Box>

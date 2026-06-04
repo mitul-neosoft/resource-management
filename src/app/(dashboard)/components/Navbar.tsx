@@ -1,14 +1,41 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api/client";
+
 export default function Navbar(): React.JSX.Element {
-  const T = {
-    red: "#e43e38",
+  const router = useRouter();
+  const [name, setName] = useState("User");
+  const [initials, setInitials] = useState("U");
+
+  useEffect(() => {
+    apiFetch<{
+      user: { firstName: string; lastName: string };
+    }>("/api/dashboard")
+      .then((data) => {
+        const full = `${data.user.firstName} ${data.user.lastName}`;
+        setName(full);
+        setInitials(
+          `${data.user.firstName[0] || ""}${data.user.lastName[0] || ""}`.toUpperCase()
+        );
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.push("/login");
+      router.refresh();
+    }
   };
 
   return (
     <div
       style={{
-        background: T.red,
+        background: "#e43e38",
         height: 58,
         display: "flex",
         alignItems: "center",
@@ -20,34 +47,11 @@ export default function Navbar(): React.JSX.Element {
         zIndex: 100,
       }}
     >
-      {/* LEFT - BRAND */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <span
-          style={{
-            color: "#fff",
-            fontSize: 18,
-            fontWeight: 800,
-            letterSpacing: "0.3px",
-          }}
-        >
-          Resource Engagement Portal
-        </span>
-      </div>
+      <span style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>
+        Resource Engagement Portal
+      </span>
 
-      {/* RIGHT - USER */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 22,
-        }}
-      >
-        {/* AVATAR */}
+      <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
         <div
           style={{
             width: 42,
@@ -60,34 +64,16 @@ export default function Navbar(): React.JSX.Element {
             color: "#fff",
             fontWeight: 800,
             fontSize: 15,
-            letterSpacing: "0.5px",
           }}
         >
-          SM
+          {initials}
         </div>
-
-        {/* USER NAME */}
-        <div
-          style={{
-            textAlign: "right",
-            lineHeight: 1.2,
-          }}
-        >
-          <p
-            style={{
-              color: "#fff",
-              fontSize: 18,
-              fontWeight: 800,
-              margin: 0,
-            }}
-          >
-            Shubham Mohite
-          </p>
-        </div>
-
-        {/* LOGOUT */}
+        <p style={{ color: "#fff", fontSize: 18, fontWeight: 800, margin: 0 }}>
+          {name}
+        </p>
         <button
           type="button"
+          onClick={handleLogout}
           style={{
             background: "transparent",
             border: "1.5px solid rgba(255,255,255,0.8)",
@@ -97,10 +83,6 @@ export default function Navbar(): React.JSX.Element {
             fontSize: 13,
             fontWeight: 700,
             cursor: "pointer",
-            transition: "0.2s",
-          }}
-          onClick={() => {
-            console.log("Logout clicked");
           }}
         >
           Logout
