@@ -35,7 +35,7 @@ export default function Sidebar(): React.JSX.Element {
     {
       name: "Learning",
       icon: "ri-book-open-line",
-      path: "/dashboard/learning",
+      path: "/learning",
     },
   ];
 
