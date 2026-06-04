@@ -20,7 +20,7 @@ export default function Sidebar(): React.JSX.Element {
     {
       name: "Jobs",
       icon: "ri-briefcase-line",
-      path: "/dashboard/jobs",
+      path: "/jobs",
     },
     {
       name: "Interview",
