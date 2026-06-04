@@ -53,9 +53,11 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         <main
           style={{
             flex: 1,
+            marginLeft: 120,
             background: "#F9FAFB",
             minHeight: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
-            padding: 20,
+            padding: 24,
+            boxSizing: "border-box",
           }}
         >
           {children}
