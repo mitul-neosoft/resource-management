@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resource Management Portal
 
-## Getting Started
+Full-stack employee resource portal built with Next.js (App Router), TypeScript, Mantine UI, MongoDB, and JWT authentication.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 18+
+- MongoDB (local or Atlas)
+
+## Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Configure environment variables in `.env.local`:
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/resource-management
+JWT_SECRET=your-secure-jwt-secret
+```
+
+3. Start MongoDB locally (if not using Atlas).
+
+4. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## API Endpoints
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register user |
+| POST | `/api/auth/login` | Login (sets JWT cookie) |
+| POST | `/api/auth/forgot-password` | Request password reset |
+| POST | `/api/auth/reset-password` | Reset password with token |
+| POST | `/api/auth/logout` | Clear session |
+| GET | `/api/dashboard` | Dashboard stats |
+| GET/POST | `/api/skills` | List/create skills |
+| PUT/DELETE | `/api/skills/[id]` | Update/delete skill |
+| GET/POST | `/api/jobs` | List/create jobs |
+| PUT/DELETE | `/api/jobs/[id]` | Update/delete job |
+| GET/POST | `/api/learning` | List/create courses |
+| PUT/DELETE | `/api/learning/[id]` | Update/delete course |
 
-## Learn More
+## Notes
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- In development, `POST /api/auth/forgot-password` returns a `resetToken` in the response for testing without email.
+- Jobs and learning courses are auto-seeded on first access when collections are empty.
+- Protected routes: `/dashboard`, `/jobs`, `/learning`

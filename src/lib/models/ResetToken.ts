@@ -1,12 +1,22 @@
-import mongoose from "mongoose";
+import mongoose, { Schema, type Model } from "mongoose";
 
-const ResetTokenSchema = new mongoose.Schema(
+export interface IResetToken {
+  user: mongoose.Types.ObjectId;
+  token: string;
+  expiresAt: Date;
+}
+
+const ResetTokenSchema = new Schema<IResetToken>(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    token: { type: String, required: true, unique: true },
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    token: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
   },
   { timestamps: true }
 );
 
-const ResetToken = mongoose.models.ResetToken || mongoose.model("ResetToken", ResetTokenSchema);
+const ResetToken: Model<IResetToken> =
+  (mongoose.models.ResetToken as Model<IResetToken>) ||
+  mongoose.model<IResetToken>("ResetToken", ResetTokenSchema);
+
 export default ResetToken;

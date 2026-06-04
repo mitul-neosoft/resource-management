@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/lib/api/client";
 
 const T = {
   red: "#F12B20",
@@ -13,25 +14,27 @@ const T = {
   muted: "#6B7280",
 };
 
-interface LearningItemProps {
-  icon: string;
+interface Course {
+  _id: string;
   title: string;
+  description: string;
   progress: number;
-  setProgress: React.Dispatch<React.SetStateAction<number>>;
+  assignedBy: string;
+  dueDate: string;
 }
 
-interface ProgressPayload {
-  LND_progress: number;
-  project_progress: number;
+interface LearningItemProps {
+  course: Course;
+  onProgressChange: (id: string, progress: number) => void;
+  saving: boolean;
 }
 
 function LearningItem({
-  icon,
-  title,
-  progress,
-  setProgress,
+  course,
+  onProgressChange,
+  saving,
 }: LearningItemProps): React.JSX.Element {
-  const completed = progress === 100;
+  const completed = course.progress === 100;
 
   return (
     <div
@@ -55,7 +58,7 @@ function LearningItem({
           fontSize: 22,
         }}
       >
-        {icon}
+        📚
       </div>
 
       <div style={{ flex: 1 }}>
@@ -66,17 +69,9 @@ function LearningItem({
             marginBottom: 10,
           }}
         >
-          <p
-            style={{
-              margin: 0,
-              fontWeight: 700,
-              fontSize: 14,
-              color: T.text,
-            }}
-          >
-            {title}
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: T.text }}>
+            {course.title}
           </p>
-
           <span
             style={{
               background: completed ? "#ECFDF5" : "#FEF3C7",
@@ -91,6 +86,11 @@ function LearningItem({
           </span>
         </div>
 
+        <p style={{ margin: "0 0 8px", fontSize: 12, color: T.muted }}>
+          {course.description} · Due{" "}
+          {new Date(course.dueDate).toLocaleDateString()} · {course.assignedBy}
+        </p>
+
         <div
           style={{
             display: "flex",
@@ -99,7 +99,6 @@ function LearningItem({
           }}
         >
           <span style={{ color: T.muted, fontSize: 12 }}>Progress</span>
-
           <span
             style={{
               fontWeight: 700,
@@ -107,7 +106,7 @@ function LearningItem({
               color: completed ? T.green : T.red,
             }}
           >
-            {progress}%
+            {course.progress}%
           </span>
         </div>
 
@@ -115,34 +114,57 @@ function LearningItem({
           type="range"
           min={0}
           max={100}
-          value={progress}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setProgress(Number(e.target.value))
+          value={course.progress}
+          disabled={saving}
+          onChange={(e) =>
+            onProgressChange(course._id, Number(e.target.value))
           }
-          style={{
-            width: "100%",
-            accentColor: T.red,
-          }}
+          style={{ width: "100%", accentColor: T.red }}
         />
       </div>
     </div>
   );
 }
 
-export default function LDCard(): React.JSX.Element {
-  const [courseProgress, setCourseProgress] = useState<number>(70);
-  const [projectProgress, setProjectProgress] = useState<number>(45);
-  const [loading] = useState<boolean>(false);
+export default function LearningAssigned(): React.JSX.Element {
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (): void => {
-    const payload: ProgressPayload = {
-      LND_progress: courseProgress,
-      project_progress: projectProgress,
-    };
+  const loadCourses = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await apiFetch<{ courses: Course[] }>("/api/learning");
+      setCourses(data.courses);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load courses");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-    console.log("L&D Progress Payload:", payload);
+  useEffect(() => {
+    loadCourses();
+  }, [loadCourses]);
 
-    alert("Progress submitted successfully");
+  const updateProgress = async (id: string, progress: number) => {
+    setCourses((prev) =>
+      prev.map((c) => (c._id === id ? { ...c, progress } : c))
+    );
+    setSaving(true);
+    try {
+      await apiFetch(`/api/learning/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ progress }),
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update progress");
+      await loadCourses();
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -165,47 +187,26 @@ export default function LDCard(): React.JSX.Element {
         L&D Assigned Learning
       </h3>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        <LearningItem
-          icon="📚"
-          title="React Advanced Patterns"
-          progress={courseProgress}
-          setProgress={setCourseProgress}
-        />
+      {error && (
+        <p style={{ color: T.red, fontSize: 13, marginBottom: 12 }}>{error}</p>
+      )}
 
-        <LearningItem
-          icon="💻"
-          title="Employee Bench Portal Project"
-          progress={projectProgress}
-          setProgress={setProjectProgress}
-        />
-      </div>
-
-      <button
-        type="button"
-        onClick={handleSubmit}
-        disabled={loading}
-        style={{
-          marginTop: 16,
-          width: "100%",
-          background: T.red,
-          color: "#fff",
-          border: "none",
-          borderRadius: 8,
-          padding: "12px",
-          fontWeight: 700,
-          cursor: loading ? "not-allowed" : "pointer",
-          opacity: loading ? 0.7 : 1,
-        }}
-      >
-        {loading ? "Saving..." : "Submit Progress"}
-      </button>
+      {loading ? (
+        <p style={{ color: T.muted }}>Loading courses...</p>
+      ) : courses.length === 0 ? (
+        <p style={{ color: T.muted }}>No assigned courses yet.</p>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {courses.map((course) => (
+            <LearningItem
+              key={course._id}
+              course={course}
+              onProgressChange={updateProgress}
+              saving={saving}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

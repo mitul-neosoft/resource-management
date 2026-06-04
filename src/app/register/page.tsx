@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Anchor,
   Box,
@@ -14,114 +15,94 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
+import { apiFetch } from "@/lib/api/client";
 
 interface RegisterForm {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   confirmPassword: string;
 }
 
 interface RegisterErrors {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [form, setForm] = useState<RegisterForm>({
-    name: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
-
   const [errors, setErrors] = useState<RegisterErrors>({});
-
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleChange = <K extends keyof RegisterForm>(
     field: K,
-    value: RegisterForm[K],
+    value: RegisterForm[K]
   ) => {
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-
-    setErrors((prev) => ({
-      ...prev,
-      [field]: "",
-    }));
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setApiError("");
   };
 
   const validate = (): boolean => {
     const err: RegisterErrors = {};
-
-    if (!form.name.trim()) {
-      err.name = "Name is required";
-    }
-
+    if (!form.firstName.trim()) err.firstName = "First name is required";
+    if (!form.lastName.trim()) err.lastName = "Last name is required";
     if (!form.email.trim()) {
       err.email = "Email is required";
     } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
       err.email = "Enter valid email";
     }
-
     if (!form.password) {
       err.password = "Password is required";
     } else if (form.password.length < 6) {
       err.password = "Min 6 characters required";
     }
-
     if (!form.confirmPassword) {
       err.confirmPassword = "Confirm password is required";
     } else if (form.password !== form.confirmPassword) {
       err.confirmPassword = "Passwords do not match";
     }
-
     setErrors(err);
-
     return Object.keys(err).length === 0;
   };
 
   const handleSubmit = async (): Promise<void> => {
     if (!validate()) return;
-
     setLoading(true);
-
-    const payload = {
-      name: form.name,
-      email: form.email,
-      password: form.password,
-    };
+    setApiError("");
 
     try {
-      console.log("REGISTER API PAYLOAD:", payload);
-
-      // const response = await fetch("/api/auth/register", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
+      await apiFetch("/api/auth/register", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          password: form.password,
+        }),
+      });
+      router.push("/login");
     } catch (error) {
-      console.error(error);
+      setApiError(error instanceof Error ? error.message : "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Box
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        overflow: "hidden",
-      }}
-    >
+    <Box style={{ minHeight: "100vh", display: "flex", overflow: "hidden" }}>
       <Box
         style={{
           width: "42%",
@@ -140,11 +121,24 @@ export default function RegisterPage() {
 
           <Paper radius="xl" p="xl" withBorder>
             <Stack>
+              {apiError && (
+                <Text c="red" size="sm">
+                  {apiError}
+                </Text>
+              )}
+
               <TextInput
-                label="Name"
-                value={form.name}
-                onChange={(e) => handleChange("name", e.currentTarget.value)}
-                error={errors.name}
+                label="First Name"
+                value={form.firstName}
+                onChange={(e) => handleChange("firstName", e.currentTarget.value)}
+                error={errors.firstName}
+              />
+
+              <TextInput
+                label="Last Name"
+                value={form.lastName}
+                onChange={(e) => handleChange("lastName", e.currentTarget.value)}
+                error={errors.lastName}
               />
 
               <TextInput
@@ -193,45 +187,11 @@ export default function RegisterPage() {
           </Paper>
         </Container>
       </Box>
-      {/* CURVED DIVIDER (unchanged) */}
-      <Box
-        visibleFrom="md"
-        style={{
-          width: 160,
-          height: "100vh",
-          marginLeft: -1,
-          position: "relative",
-          zIndex: 5,
-          flexShrink: 0,
-        }}
-      >
-        <svg
-          viewBox="0 0 220 1000"
-          preserveAspectRatio="none"
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "block",
-          }}
-        >
-          <path
-            d="M 0 0 C 180 120, 180 320, 70 500 C -40 680, -40 880, 180 1000 L 220 1000 L 220 0 Z"
-            fill="#ffffff"
-          />
-          <path
-            d="M 0 0 C 180 120, 180 320, 70 500 C -40 680, -40 880, 180 1000"
-            fill="none"
-            stroke="#f12b20"
-            strokeWidth="5"
-          />
-        </svg>
-      </Box>
-      {/* RIGHT SAME PLACEHOLDER */}
+
       <Stack align="center" maw={700}>
         <Box
           style={{
             background: "rgba(255,255,255,0.12)",
-            backdropFilter: "blur(12px)",
             borderRadius: 28,
             padding: 32,
             width: "100%",
@@ -239,7 +199,6 @@ export default function RegisterPage() {
         >
           <Image src="/images/emp1.png" h={420} fit="contain" />
         </Box>
-
         <Title c="white" ta="center">
           Join Us Today
         </Title>

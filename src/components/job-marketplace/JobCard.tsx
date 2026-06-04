@@ -7,7 +7,7 @@
 // } from "@remixicon/react";
 
 export interface Job {
-  id: number;
+  id: string | number;
   title: string;
   company: string;
   description: string;

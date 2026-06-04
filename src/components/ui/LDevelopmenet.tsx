@@ -11,27 +11,59 @@ const T = {
   card: "#FFFFFF",
 };
 
-interface ProgressBarProps {
+interface LDCardProps {
+  learningProgress?: number;
+}
+
+export default function LDCard({ learningProgress = 0 }: LDCardProps): React.JSX.Element {
+  const progress = learningProgress;
+  const isGood = progress > 75;
+  const barColor = isGood ? T.green : T.red;
+
+  return (
+    <Card>
+      <SectionTitle>L&D Learning Overview</SectionTitle>
+      <div style={{ marginBottom: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 6,
+            gap: 12,
+          }}
+        >
+          <div>
+            <p style={{ color: T.text, fontSize: 13, fontWeight: 600, margin: 0 }}>
+              Overall Learning Progress
+            </p>
+            <p style={{ color: T.muted, fontSize: 11, margin: "2px 0 0" }}>
+              Aggregated from assigned courses
+            </p>
+          </div>
+          <span
+            style={{
+              color: barColor,
+              fontWeight: 700,
+              fontSize: 14,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {progress}%
+          </span>
+        </div>
+        <ProgressBar value={progress} color={barColor} />
+      </div>
+    </Card>
+  );
+}
+
+const ProgressBar = ({
+  value,
+  color,
+}: {
   value: number;
   color: string;
-}
-
-interface CardProps {
-  children: ReactNode;
-}
-
-interface SectionTitleProps {
-  children: ReactNode;
-}
-
-interface Course {
-  name: string;
-  assigned: string;
-  due: string;
-  progress: number;
-}
-
-const ProgressBar = ({ value, color }: ProgressBarProps): React.JSX.Element => (
+}): React.JSX.Element => (
   <div
     style={{
       width: "100%",
@@ -52,7 +84,7 @@ const ProgressBar = ({ value, color }: ProgressBarProps): React.JSX.Element => (
   </div>
 );
 
-const Card = ({ children }: CardProps): React.JSX.Element => (
+const Card = ({ children }: { children: ReactNode }): React.JSX.Element => (
   <div
     style={{
       padding: 24,
@@ -65,86 +97,8 @@ const Card = ({ children }: CardProps): React.JSX.Element => (
   </div>
 );
 
-const SectionTitle = ({ children }: SectionTitleProps): React.JSX.Element => (
-  <h3
-    style={{
-      margin: "0 0 16px",
-      fontSize: 14,
-      fontWeight: 700,
-      color: T.text,
-    }}
-  >
+const SectionTitle = ({ children }: { children: ReactNode }): React.JSX.Element => (
+  <h3 style={{ margin: "0 0 16px", fontSize: 14, fontWeight: 700, color: T.text }}>
     {children}
   </h3>
 );
-
-export default function LDCard(): React.JSX.Element {
-  const course: Course = {
-    name: "React Advanced Training",
-    assigned: "HR Team",
-    due: "12 Jun 2026",
-    progress: 68,
-  };
-
-  if (!course) {
-    return <></>;
-  }
-
-  const isGood = course.progress > 75;
-  const barColor = isGood ? T.green : T.red;
-
-  return (
-    <Card>
-      <SectionTitle>L&D Assigned Learning</SectionTitle>
-
-      <div style={{ marginBottom: 18 }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 6,
-            gap: 12,
-          }}
-        >
-          <div>
-            <p
-              style={{
-                color: T.text,
-                fontSize: 13,
-                fontWeight: 600,
-                margin: 0,
-              }}
-            >
-              {course.name}
-            </p>
-
-            <p
-              style={{
-                color: T.muted,
-                fontSize: 11,
-                margin: "2px 0 0",
-              }}
-            >
-              Due {course.due}
-            </p>
-          </div>
-
-          <span
-            style={{
-              color: barColor,
-              fontWeight: 700,
-              fontSize: 14,
-              whiteSpace: "nowrap",
-            }}
-          >
-            {course.progress}%
-          </span>
-        </div>
-
-        {/* Progress Bar */}
-        <ProgressBar value={course.progress} color={barColor} />
-      </div>
-    </Card>
-  );
-}
