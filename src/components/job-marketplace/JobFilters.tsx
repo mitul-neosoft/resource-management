@@ -1,6 +1,6 @@
 "use client";
 
-import { RiSearchLine } from "@remixicon/react";
+// import { RiSearchLine } from "@remixicon/react";
 
 export default function JobFilters() {
   return (
@@ -33,10 +33,10 @@ export default function JobFilters() {
 
         {/* Search */}
         <div className="relative w-full lg:w-80">
-          <RiSearchLine
+          {/* <RiSearchLine
             size={18}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-          />
+          /> */}
 
           <input
             type="text"

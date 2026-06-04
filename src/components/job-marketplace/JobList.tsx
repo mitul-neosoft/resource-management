@@ -20,16 +20,11 @@ interface JobListProps {
   jobs: Job[];
 }
 
-export default function JobList({
-  jobs,
-}: JobListProps): React.JSX.Element {
+export default function JobList({ jobs }: JobListProps): React.JSX.Element {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       {jobs.map((job) => (
-        <JobCard
-          key={job.id}
-          job={job}
-        />
+        <JobCard key={job.id} job={job} />
       ))}
     </div>
   );
