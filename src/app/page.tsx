@@ -1,11 +1,17 @@
-import { Button, Container, Title } from "@mantine/core";
+import "@mantine/core/styles.css";
+import { MantineProvider } from "@mantine/core";
+import "remixicon/fonts/remixicon.css";
 
-export default function HomePage() {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <Container py="xl">
-      <Title order={1}>Resource Management Portal</Title>
-
-      <Button mt="md">Get Started</Button>
-    </Container>
+    <html lang="en">
+      <body>
+        <MantineProvider>{children}</MantineProvider>
+      </body>
+    </html>
   );
 }
