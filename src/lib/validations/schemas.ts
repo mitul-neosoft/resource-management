@@ -3,14 +3,20 @@ import { z } from "zod";
 export const registerSchema = z.object({
   firstName: z.string().min(1),
   lastName: z.string().min(1),
+  employeeId: z.string().min(1, "Employee ID is required"),
   email: z.string().email(),
   password: z.string().min(6),
 });
 
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
-});
+export const loginSchema = z
+  .object({
+    email: z.string().optional(),
+    employeeId: z.string().optional(),
+    password: z.string().min(1),
+  })
+  .refine((data) => data.email || data.employeeId, {
+    message: "Email or Employee ID is required",
+  });
 
 export const jobCreateSchema = z.object({
   title: z.string().min(1),
@@ -56,10 +62,15 @@ export const courseAssignmentSchema = z.object({
   status: z.string().optional(),
 });
 
-export const allocationSchema = z.object({
-  candidateId: z.string().min(1),
-  jobId: z.string().min(1),
-});
+export const allocationSchema = z
+  .object({
+    candidateId: z.string().optional(),
+    employeeId: z.string().optional(),
+    jobId: z.string().min(1),
+  })
+  .refine((data) => data.candidateId || data.employeeId, {
+    message: "candidateId or employeeId is required",
+  });
 
 export const nudgeSchema = z.object({
   userId: z.string().optional(),

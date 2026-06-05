@@ -20,20 +20,20 @@ import {
 import { apiFetch } from "@/lib/api/client";
 
 interface LoginForm {
-  email: string;
+  identifier: string;
   password: string;
   remember: boolean;
 }
 
 interface LoginErrors {
-  email?: string;
+  identifier?: string;
   password?: string;
 }
 
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState<LoginForm>({
-    email: "",
+    identifier: "",
     password: "",
     remember: false,
   });
@@ -52,10 +52,8 @@ export default function LoginPage() {
 
   const validate = (): boolean => {
     const newErrors: LoginErrors = {};
-    if (!form.email) {
-      newErrors.email = "Email is required";
-    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-      newErrors.email = "Enter a valid email";
+    if (!form.identifier.trim()) {
+      newErrors.identifier = "Email or Employee ID is required";
     }
     if (!form.password) {
       newErrors.password = "Password is required";
@@ -72,14 +70,16 @@ export default function LoginPage() {
     setApiError("");
 
     try {
+      const identifier = form.identifier.trim();
+      const loginBody = identifier.includes("@")
+        ? { email: identifier, password: form.password }
+        : { employeeId: identifier, password: form.password };
+
       const data = await apiFetch<{
         user: { role: string };
       }>("/api/auth/login", {
         method: "POST",
-        body: JSON.stringify({
-          email: form.email,
-          password: form.password,
-        }),
+        body: JSON.stringify(loginBody),
       });
       const dest =
         data.user.role === "RESOURCE_MANAGER" ? "/rm/dashboard" : "/dashboard";
@@ -138,13 +138,15 @@ export default function LoginPage() {
               )}
 
               <TextInput
-                label="Email"
-                placeholder="john@example.com"
+                label="Email or Employee ID"
+                placeholder="john@example.com or EMP001"
                 radius="md"
                 size="md"
-                value={form.email}
-                onChange={(e) => handleChange("email", e.currentTarget.value)}
-                error={errors.email}
+                value={form.identifier}
+                onChange={(e) =>
+                  handleChange("identifier", e.currentTarget.value)
+                }
+                error={errors.identifier}
               />
 
               <PasswordInput

@@ -7,6 +7,8 @@ import ExcelUploadButton from "@/components/rm/ExcelUploadButton";
 
 interface Candidate {
   _id: string;
+  employeeId?: string;
+  managerEmployeeId?: string;
   name: string;
   firstName: string;
   lastName: string;
@@ -21,18 +23,24 @@ interface Candidate {
   email: string;
   experience?: string;
   clientContractEndDate?: string;
+  isRegistered?: boolean;
 }
 
 export default function BenchPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
- 
+  const [managerEmployeeId, setManagerEmployeeId] = useState("");
+
+  const query = new URLSearchParams({ sort: "benchDays" });
+  if (managerEmployeeId.trim()) {
+    query.set("managerEmployeeId", managerEmployeeId.trim());
+  }
+
   const { data, loading, error, reload } = useApi<{ candidates: Candidate[] }>(
-    `/api/bench-candidates?sort=benchDays`,
+    `/api/bench-candidates?${query.toString()}`,
   );
 
   const candidates = data?.candidates ?? [];
-  console.log(candidates);
 
   const filtered = useMemo(() => {
     let list = [...candidates];
@@ -81,11 +89,19 @@ export default function BenchPage() {
             · <span className="text-green-600">{stats.fresh} Fresh</span>
           </p>
         </div>
-        <ExcelUploadButton
-          endpoint="/api/rm/upload/bench"
-          label="Upload Bench Excel"
-          onComplete={() => reload()}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="/api/rm/upload/bench/template"
+            className="rounded-lg border px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            Download Template
+          </a>
+          <ExcelUploadButton
+            endpoint="/api/rm/upload/bench"
+            label="Upload Bench Excel"
+            onComplete={() => reload()}
+          />
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
@@ -95,6 +111,13 @@ export default function BenchPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="flex-1 rounded-lg border px-4 py-2"
+        />
+        <input
+          type="text"
+          placeholder="Filter by Manager Employee ID"
+          value={managerEmployeeId}
+          onChange={(e) => setManagerEmployeeId(e.target.value)}
+          className="rounded-lg border px-3 py-2 sm:w-56"
         />
         <select
           value={filter}
@@ -135,17 +158,29 @@ export default function BenchPage() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-semibold">{c.name}</h3>
+                        {c.employeeId && (
+                          <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+                            {c.employeeId}
+                          </span>
+                        )}
                         <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs">
                           {c.status}
                         </span>
+                        {c.isRegistered === false && (
+                          <span className="rounded-full bg-yellow-50 px-2 py-0.5 text-xs text-yellow-700">
+                            Pending Registration
+                          </span>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500">
                         {c.designation || c.jd} · {c.experience} · 📍{" "}
                         {c.location}
+                        {c.managerEmployeeId
+                          ? ` · Manager: ${c.managerEmployeeId}`
+                          : ""}
                       </p>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {Array.isArray(c) &&
-                          c.skills.map((s) => (
+                        {c.skills.map((s) => (
                             <span
                               key={s}
                               className="rounded-full bg-gray-100 px-2 py-1 text-xs"

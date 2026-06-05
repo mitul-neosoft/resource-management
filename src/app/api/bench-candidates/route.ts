@@ -1,6 +1,7 @@
 import { UserRole } from "@/constants/roles";
 import { createHandler, jsonOk } from "@/lib/api/handler";
 import { userRepository } from "@/lib/repositories/user.repository";
+import { normalizeEmployeeId } from "@/lib/utils/employeeId";
 
 export const GET = createHandler(
   async ({ req }) => {
@@ -8,13 +9,20 @@ export const GET = createHandler(
     const search = searchParams.get("search")?.toLowerCase();
     const filter = searchParams.get("filter");
     const sort = searchParams.get("sort");
+    const managerEmployeeId = searchParams.get("managerEmployeeId");
 
-    let candidates = await userRepository.findBenchUsersEnriched();
+    const baseFilter: Record<string, unknown> = {};
+    if (managerEmployeeId) {
+      baseFilter.managerEmployeeId = normalizeEmployeeId(managerEmployeeId);
+    }
+
+    let candidates = await userRepository.findBenchUsersEnriched(baseFilter);
 
     if (search) {
       candidates = candidates.filter(
         (c) =>
           c.name.toLowerCase().includes(search) ||
+          (c.employeeId || "").toLowerCase().includes(search) ||
           (c.designation || "").toLowerCase().includes(search) ||
           (c.skills || []).some((s) => s.toLowerCase().includes(search))
       );

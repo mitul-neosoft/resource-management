@@ -20,6 +20,7 @@ import { apiFetch } from "@/lib/api/client";
 interface RegisterForm {
   firstName: string;
   lastName: string;
+  employeeId: string;
   email: string;
   password: string;
   confirmPassword: string;
@@ -28,6 +29,7 @@ interface RegisterForm {
 interface RegisterErrors {
   firstName?: string;
   lastName?: string;
+  employeeId?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -38,6 +40,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState<RegisterForm>({
     firstName: "",
     lastName: "",
+    employeeId: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -45,6 +48,7 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState<RegisterErrors>({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [employeeIdHint, setEmployeeIdHint] = useState("");
 
   const handleChange = <K extends keyof RegisterForm>(
     field: K,
@@ -59,6 +63,7 @@ export default function RegisterPage() {
     const err: RegisterErrors = {};
     if (!form.firstName.trim()) err.firstName = "First name is required";
     if (!form.lastName.trim()) err.lastName = "Last name is required";
+    if (!form.employeeId.trim()) err.employeeId = "Employee ID is required";
     if (!form.email.trim()) {
       err.email = "Email is required";
     } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
@@ -89,6 +94,7 @@ export default function RegisterPage() {
         body: JSON.stringify({
           firstName: form.firstName,
           lastName: form.lastName,
+          employeeId: form.employeeId.trim(),
           email: form.email,
           password: form.password,
         }),
@@ -140,6 +146,44 @@ export default function RegisterPage() {
                 onChange={(e) => handleChange("lastName", e.currentTarget.value)}
                 error={errors.lastName}
               />
+
+              <TextInput
+                label="Employee ID"
+                description="Must match your ID from the bench Excel upload"
+                value={form.employeeId}
+                onChange={(e) => {
+                  handleChange("employeeId", e.currentTarget.value);
+                  setEmployeeIdHint("");
+                }}
+                onBlur={async () => {
+                  const id = form.employeeId.trim();
+                  if (!id) return;
+                  try {
+                    const res = await fetch(
+                      `/api/auth/verify-employee-id?employeeId=${encodeURIComponent(id)}`
+                    );
+                    const data = await res.json();
+                    if (res.ok && data.valid) {
+                      setEmployeeIdHint(
+                        `Found: ${data.employee.firstName} ${data.employee.lastName}`
+                      );
+                    } else {
+                      setEmployeeIdHint(data.error || "Employee ID not found");
+                    }
+                  } catch {
+                    setEmployeeIdHint("");
+                  }
+                }}
+                error={errors.employeeId}
+              />
+              {employeeIdHint && (
+                <Text
+                  size="sm"
+                  c={employeeIdHint.startsWith("Found") ? "green" : "red"}
+                >
+                  {employeeIdHint}
+                </Text>
+              )}
 
               <TextInput
                 label="Email"

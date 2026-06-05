@@ -17,12 +17,16 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const user = await User.findById(auth.payload.userId).select("-password");
+    const user =
+      (await User.findOne({ employeeId: auth.payload.employeeId }).select(
+        "-password"
+      )) ||
+      (await User.findById(auth.payload.userId).select("-password"));
     if (!user) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    const employeeId = user.employeeId || String(user._id);
+    const employeeId = user.employeeId || auth.payload.employeeId;
     const [skillCount, assignments, interviews] = await Promise.all([
       Skill.countDocuments({ employeeId }),
       courseRepository.findAssignmentsByUser(auth.payload.userId),

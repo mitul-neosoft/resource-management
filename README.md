@@ -30,16 +30,30 @@ npm run dev
 
 ### Bench Excel — `POST /api/rm/upload/bench`
 
-Upload from **Bench** screen. Columns:
+Upload from **Bench** screen. Download template: `GET /api/rm/upload/bench/template`
 
-`Name`, `JD`, `Rating`, `Experience`, `Status`, `Team`, `Location`, `Details`, `Bench Age` (ignored), `Resigned On?`, `Domestic`, `L&D Ongoing`, `Candidate Tagged On`
+Required columns:
 
-- Records stored in **Users** collection
+`Employee ID`, `Name`
+
+Optional columns:
+
+`Manager Employee ID`, `Email`, `JD`, `Rating`, `Experience`, `Status`, `Team`, `Location`, `Details`, `Bench Days`, `Contract End Date`, `Resigned On?`, `Domestic`, `L&D Ongoing`, `Candidate Tagged On`
+
+- **Employee ID** is the primary key — must be unique in the file and in the database
+- **Manager Employee ID** links each employee to their reporting manager
+- Records stored in **Users** collection (`uploadedFromBench: true`)
 - Skills auto-parsed from JD (e.g. `MERN Developer` → MongoDB, Express, React, Node.js)
-- `Candidate Tagged On` → `clientContractEndDate`
+- `Contract End Date` or `Bench Days` → `clientContractEndDate`
 - Bench age = **today − clientContractEndDate** (live, never stored)
 - Notice period shown only when `Resigned On?` is set
-- Imported users default password: `Bench@123`
+- Imported users must **register** with their Employee ID before logging in
+
+### Registration & Login
+
+- Registration requires a valid **Employee ID** from the uploaded bench Excel
+- Duplicate Employee IDs are rejected at registration
+- Login accepts **Email** or **Employee ID**
 
 ### Jobs Excel — `POST /api/rm/upload/jobs`
 

@@ -15,11 +15,17 @@ interface RmDashboardData {
   allocations: Array<{
     _id: string;
     createdAt: string;
-    candidateId: { firstName?: string; lastName?: string; name?: string };
+    candidateId: {
+      firstName?: string;
+      lastName?: string;
+      name?: string;
+      employeeId?: string;
+    };
     jobId: { title: string; company: string };
   }>;
   criticalCandidates: Array<{
     _id: string;
+    employeeId?: string;
     name: string;
     designation?: string;
     jd?: string;
@@ -130,7 +136,14 @@ export default function RmDashboardPage() {
     >
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
         <div>
-          <h3 className="font-semibold">{c.name}</h3>
+          <h3 className="font-semibold">
+            {c.name}
+            {c.employeeId && (
+              <span className="ml-2 text-xs font-normal text-gray-500">
+                ({c.employeeId})
+              </span>
+            )}
+          </h3>
           <p className="text-sm text-gray-500">
             {c.designation || c.jd} · {c.location}
           </p>
@@ -213,7 +226,13 @@ export default function RmDashboardPage() {
                       {a.candidateId?.firstName
                         ? `${a.candidateId.firstName} ${a.candidateId.lastName}`
                         : "Candidate"}
-                    </strong>{" "}
+                    </strong>
+                    {a.candidateId?.employeeId && (
+                      <span className="text-gray-400">
+                        {" "}
+                        ({a.candidateId.employeeId})
+                      </span>
+                    )}{" "}
                     → {a.jobId?.title}
                   </span>
                   <span className="text-gray-400">

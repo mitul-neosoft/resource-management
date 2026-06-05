@@ -16,13 +16,14 @@ export const GET = createHandler(
 
 export const POST = createHandler(
   async ({ auth, body }) => {
-    const { candidateId, jobId } = body as ReturnType<
+    const { candidateId, employeeId, jobId } = body as ReturnType<
       typeof allocationSchema.parse
     >;
     const allocation = await allocateCandidateToJob(
       candidateId,
       jobId,
-      auth.userId
+      auth.userId,
+      employeeId
     );
     return jsonOk({ message: "Candidate allocated.", allocation }, 201);
   },

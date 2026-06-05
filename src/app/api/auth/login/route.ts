@@ -7,18 +7,34 @@ import { loginSchema } from "@/lib/validations/schemas";
 import { UserRole } from "@/constants/roles";
 import { resolveRoleForEmail } from "@/constants/auth";
 import { seedRmDataIfEmpty } from "@/lib/seed/rmSeed";
+import { normalizeEmployeeId } from "@/lib/utils/employeeId";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = loginSchema.parse(await request.json());
+    const body = loginSchema.parse(await request.json());
     await connectDB();
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = body.employeeId
+      ? await User.findOne({
+          employeeId: normalizeEmployeeId(body.employeeId),
+        })
+      : await User.findOne({ email: body.email!.toLowerCase().trim() });
+
     if (!user || !user.isActive) {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    if (user.uploadedFromBench && user.isRegistered === false) {
+      return NextResponse.json(
+        {
+          error:
+            "Account not activated. Please register using your Employee ID.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const isMatch = await bcrypt.compare(body.password, user.password);
     if (!isMatch) {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
     }

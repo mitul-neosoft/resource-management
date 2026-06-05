@@ -9,6 +9,9 @@ export interface IUser {
   role: UserRole;
   isActive: boolean;
   employeeId?: string;
+  managerEmployeeId?: string;
+  isRegistered: boolean;
+  uploadedFromBench: boolean;
   designation?: string;
   jd?: string;
   rating?: string;
@@ -48,7 +51,10 @@ const UserSchema = new Schema<IUser>(
       default: UserRole.USER,
     },
     isActive: { type: Boolean, default: true },
-    employeeId: { type: String },
+    employeeId: { type: String, trim: true, unique: true, sparse: true },
+    managerEmployeeId: { type: String, trim: true },
+    isRegistered: { type: Boolean, default: false },
+    uploadedFromBench: { type: Boolean, default: false },
     designation: { type: String },
     jd: { type: String },
     rating: { type: String },
