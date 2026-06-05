@@ -1,0 +1,258 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  Anchor,
+  Box,
+  Button,
+  Checkbox,
+  Container,
+  Group,
+  Image,
+  Paper,
+  PasswordInput,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { apiFetch } from "@/lib/api/client";
+
+interface LoginForm {
+  identifier: string;
+  password: string;
+  remember: boolean;
+}
+
+interface LoginErrors {
+  identifier?: string;
+  password?: string;
+}
+
+export default function LoginPage() {
+  const router = useRouter();
+  const [form, setForm] = useState<LoginForm>({
+    identifier: "",
+    password: "",
+    remember: false,
+  });
+  const [errors, setErrors] = useState<LoginErrors>({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+
+  const handleChange = <K extends keyof LoginForm>(
+    field: K,
+    value: LoginForm[K]
+  ) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+    setApiError("");
+  };
+
+  const validate = (): boolean => {
+    const newErrors: LoginErrors = {};
+    if (!form.identifier.trim()) {
+      newErrors.identifier = "Email or Employee ID is required";
+    }
+    if (!form.password) {
+      newErrors.password = "Password is required";
+    } else if (form.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (): Promise<void> => {
+    if (!validate()) return;
+    setLoading(true);
+    setApiError("");
+
+    try {
+      const identifier = form.identifier.trim();
+      const loginBody = identifier.includes("@")
+        ? { email: identifier, password: form.password }
+        : { employeeId: identifier, password: form.password };
+
+      const data = await apiFetch<{
+        user: { role: string };
+      }>("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify(loginBody),
+      });
+      const dest =
+        data.user.role === "RESOURCE_MANAGER" ? "/rm/dashboard" : "/dashboard";
+      router.push(dest);
+      router.refresh();
+    } catch (error) {
+      setApiError(error instanceof Error ? error.message : "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        overflow: "hidden",
+        background: "#fff",
+      }}
+    >
+      <Box
+        style={{
+          width: "42%",
+          minWidth: 480,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#ffffff",
+          padding: "2rem",
+          zIndex: 2,
+        }}
+      >
+        <Container size={420} w="100%">
+          <Stack gap={8} mb={32}>
+            <Title order={1} fw={800}>
+              Welcome Back
+            </Title>
+            <Text c="dimmed" size="md">
+              Sign in to continue to your account
+            </Text>
+          </Stack>
+
+          <Paper
+            radius="xl"
+            p="xl"
+            shadow="xs"
+            withBorder
+            style={{ borderColor: "#f1f3f5" }}
+          >
+            <Stack gap="md">
+              {apiError && (
+                <Text c="red" size="sm">
+                  {apiError}
+                </Text>
+              )}
+
+              <TextInput
+                label="Email or Employee ID"
+                placeholder="john@example.com or EMP001"
+                radius="md"
+                size="md"
+                value={form.identifier}
+                onChange={(e) =>
+                  handleChange("identifier", e.currentTarget.value)
+                }
+                error={errors.identifier}
+              />
+
+              <PasswordInput
+                label="Password"
+                placeholder="Your password"
+                radius="md"
+                size="md"
+                value={form.password}
+                onChange={(e) =>
+                  handleChange("password", e.currentTarget.value)
+                }
+                error={errors.password}
+              />
+
+              <Group justify="space-between">
+                <Checkbox
+                  label="Remember me"
+                  checked={form.remember}
+                  onChange={(e) =>
+                    handleChange("remember", e.currentTarget.checked)
+                  }
+                />
+                <Anchor
+                  href="/forgot-password"
+                  c="#eb0f5b"
+                  fw={600}
+                  underline="never"
+                >
+                  Forgot password?
+                </Anchor>
+              </Group>
+
+              <Button
+                size="md"
+                radius="xl"
+                h={48}
+                mt={8}
+                loading={loading}
+                onClick={handleSubmit}
+                style={{
+                  background: "linear-gradient(255deg,#f12b20 0%,#eb0f5b 100%)",
+                }}
+              >
+                Sign In
+              </Button>
+
+              <Text ta="center" size="sm" c="dimmed">
+                Don&apos;t have an account?{" "}
+                <Anchor href="/register" fw={600} c="#eb0f5b" underline="never">
+                  Register
+                </Anchor>
+              </Text>
+            </Stack>
+          </Paper>
+        </Container>
+      </Box>
+
+      <Box
+        visibleFrom="md"
+        style={{
+          width: 160,
+          height: "100vh",
+          marginLeft: -1,
+          position: "relative",
+          zIndex: 5,
+          flexShrink: 0,
+        }}
+      >
+        <svg
+          viewBox="0 0 220 1000"
+          preserveAspectRatio="none"
+          style={{ width: "100%", height: "100%", display: "block" }}
+        >
+          <path
+            d="M 0 0 C 180 120, 180 320, 70 500 C -40 680, -40 880, 180 1000 L 220 1000 L 220 0 Z"
+            fill="#ffffff"
+          />
+          <path
+            d="M 0 0 C 180 120, 180 320, 70 500 C -40 680, -40 880, 180 1000"
+            fill="none"
+            stroke="#f12b20"
+            strokeWidth="5"
+          />
+        </svg>
+      </Box>
+
+      <Stack align="center" maw={700}>
+        <Box
+          style={{
+            background: "rgba(255,255,255,0.12)",
+            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 28,
+            padding: 32,
+            width: "100%",
+          }}
+        >
+          <Image src="/images/emp1.png" alt="employee" h={420} fit="contain" />
+        </Box>
+        <Title order={2} c="white" ta="center" mt="lg" fw={800}>
+          Empower Your Team
+        </Title>
+        <Text ta="center" size="lg" maw={500} c="rgba(255,255,255,0.85)">
+          Collaborate, manage projects and streamline workflows.
+        </Text>
+      </Stack>
+    </Box>
+  );
+}

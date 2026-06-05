@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Resource Management Portal
 
-## Getting Started
+Dual-role full-stack portal with Excel import, live bench age calculation, and skill-based job matching.
 
-First, run the development server:
+## Setup
+
+```bash
+npm install
+```
+
+`.env.local`:
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017/resource-management
+JWT_SECRET=your-secure-jwt-secret
+```
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Roles
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Email | Role |
+|-------|------|
+| `akash1111@yopmail.com` | `RESOURCE_MANAGER` |
+| All others | `USER` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Excel Import (RM only)
 
-## Learn More
+### Bench Excel — `POST /api/rm/upload/bench`
 
-To learn more about Next.js, take a look at the following resources:
+Upload from **Bench** screen. Download template: `GET /api/rm/upload/bench/template`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Required columns:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`Employee ID`, `Name`
 
-## Deploy on Vercel
+Optional columns:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+`Manager Employee ID`, `Email`, `JD`, `Rating`, `Experience`, `Status`, `Team`, `Location`, `Details`, `Bench Days`, `Contract End Date`, `Resigned On?`, `Domestic`, `L&D Ongoing`, `Candidate Tagged On`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Employee ID** is the primary key — must be unique in the file and in the database
+- **Manager Employee ID** links each employee to their reporting manager
+- Records stored in **Users** collection (`uploadedFromBench: true`)
+- Skills auto-parsed from JD (e.g. `MERN Developer` → MongoDB, Express, React, Node.js)
+- `Contract End Date` or `Bench Days` → `clientContractEndDate`
+- Bench age = **today − clientContractEndDate** (live, never stored)
+- Notice period shown only when `Resigned On?` is set
+- Imported users must **register** with their Employee ID before logging in
+
+### Registration & Login
+
+- Registration requires a valid **Employee ID** from the uploaded bench Excel
+- Duplicate Employee IDs are rejected at registration
+- Login accepts **Email** or **Employee ID**
+
+### Jobs Excel — `POST /api/rm/upload/jobs`
+
+Upload from **Jobs** screen. Columns:
+
+`GroupID`, `Location`, `AddedOn`, `Active Internal Profiles`, `JD Details`
+
+- Auto-extracts title, skills, experience from JD Details
+- Runs matching engine and stores results in **Match** collection
+
+## Matching Formula
+
+```
+score = (matchedSkills / totalJobSkills) × 100
+```
+
+## Portals
+
+**USER:** `/dashboard`, `/jobs`, `/learning`, `/dashboard/interview`, `/dashboard/assessment`
+
+**RM:** `/rm/dashboard`, `/rm/bench`, `/rm/jobs`, `/rm/lnd`, `/rm/reports`
