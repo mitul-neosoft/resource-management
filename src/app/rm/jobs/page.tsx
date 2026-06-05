@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { apiFetch } from "@/lib/api/client";
+import ExcelUploadButton from "@/components/rm/ExcelUploadButton";
 
 interface Job {
   _id: string;
@@ -10,21 +11,31 @@ interface Job {
   company: string;
   location: string;
   description: string;
-  skills: any[];
+  skills: string[];
   experienceRequired: string;
   openings: number;
   status: string;
   priority?: string;
   duration?: string;
   type?: string;
-  matchedCandidateId?: string;
+  matchedUserId?: string;
+  matchCount?: number;
   createdAt: string;
 }
 
-interface Match {
-  candidate: { _id: string; name: string; role?: string; benchDays: number };
+interface MatchItem {
+  _id: string;
   score: number;
   matchedSkills: string[];
+  missingSkills: string[];
+  candidate: {
+    _id: string;
+    name: string;
+    location?: string;
+    experience?: string;
+    benchDays: number | null;
+    noticeDaysLeft: number | null;
+  };
 }
 
 export default function RmJobsPage() {
@@ -33,7 +44,8 @@ export default function RmJobsPage() {
 
   const [showModal, setShowModal] = useState(false);
   const [showMatch, setShowMatch] = useState<string | null>(null);
-  const [matches, setMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<MatchItem[]>([]);
+  const [matchLoading, setMatchLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
     company: "",
@@ -43,8 +55,6 @@ export default function RmJobsPage() {
     experienceRequired: "3+ yrs",
     openings: 1,
     priority: "Medium",
-    duration: "6 months",
-    type: "Full-time",
   });
 
   const saveJob = async () => {
@@ -60,33 +70,28 @@ export default function RmJobsPage() {
       }),
     });
     setShowModal(false);
-    setForm({
-      title: "",
-      company: "",
-      location: "",
-      description: "",
-      skills: "",
-      experienceRequired: "3+ yrs",
-      openings: 1,
-      priority: "Medium",
-      duration: "6 months",
-      type: "Full-time",
-    });
     reload();
   };
 
   const loadMatches = async (jobId: string) => {
-    const res = await apiFetch<{ matches: Match[] }>(
-      `/api/jobs/${jobId}/matches`,
-    );
-    setMatches(res.matches);
+    setMatchLoading(true);
     setShowMatch(jobId);
+    try {
+      const res = await apiFetch<{ matches: MatchItem[] }>(
+        `/api/jobs/${jobId}/matches`,
+      );
+      setMatches(res.matches);
+    } catch {
+      setMatches([]);
+    } finally {
+      setMatchLoading(false);
+    }
   };
 
-  const allocate = async (candidateId: string, jobId: string) => {
+  const allocate = async (userId: string, jobId: string) => {
     await apiFetch("/api/allocations", {
       method: "POST",
-      body: JSON.stringify({ candidateId, jobId }),
+      body: JSON.stringify({ candidateId: userId, jobId }),
     });
     setShowMatch(null);
     reload();
@@ -107,19 +112,25 @@ export default function RmJobsPage() {
   if (error) return <p className="text-red-600">{error}</p>;
 
   const openJobs = jobs.filter((j) => j.status === "open");
-  const matchedCount = jobs.filter((j) => j.matchedCandidateId).length || 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Job Management</h1>
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="rounded-lg bg-red-600 px-4 py-2 text-white"
-        >
-          + Post New Job
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <ExcelUploadButton
+            endpoint="/api/rm/upload/jobs"
+            label="Upload Jobs Excel"
+            onComplete={() => reload()}
+          />
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="rounded-lg bg-red-600 px-4 py-2 text-white"
+          >
+            + Post New Job
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -137,124 +148,159 @@ export default function RmJobsPage() {
             ).length,
             icon: "⚡",
           },
-          { label: "Matched", val: matchedCount, icon: "✅" },
+          {
+            label: "Matched",
+            val: jobs.filter((j) => j.matchedUserId).length,
+            icon: "✅",
+          },
         ].map((s) => (
           <div key={s.label} className="rounded-xl border bg-white p-4">
             <div className="text-2xl">{s.icon}</div>
-            <p className="text-2xl font-bold">{s.val ? s.val : 0}</p>
+            <p className="text-2xl font-bold">{s.val}</p>
             <p className="text-sm text-gray-500">{s.label}</p>
           </div>
         ))}
       </div>
 
       <div className="space-y-4">
-        {jobs.map((job) => (
-          <div
-            key={job._id}
-            className="rounded-xl border bg-white p-6 shadow-sm"
-          >
-            <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-bold">{job.title}</h3>
-                  <span className="rounded-full bg-orange-100 px-2 py-1 text-xs text-orange-700">
-                    {job.priority} Priority
-                  </span>
-                  <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
-                    {job.status}
-                  </span>
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                    {job.openings} slots
-                  </span>
+        {jobs.length === 0 ? (
+          <p className="text-gray-500">
+            No jobs yet. Upload Excel or create a job.
+          </p>
+        ) : (
+          jobs.map((job) => (
+            <div
+              key={job._id}
+              className="rounded-xl border bg-white p-6 shadow-sm"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:justify-between">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-bold">{job.title}</h3>
+                    <span className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700">
+                      {job.matchCount ?? 0} matched profiles
+                    </span>
+                    <span className="rounded-full bg-orange-100 px-2 py-1 text-xs text-orange-700">
+                      {job.priority} Priority
+                    </span>
+                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-700">
+                      {job.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-red-600">{job.company}</p>
+                  <p className="text-sm text-gray-500">
+                    {job.location} · {job.experienceRequired}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {job.description}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {Array.isArray(job) &&
+                      job.skills.map((s) => (
+                        <span
+                          key={s}
+                          className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                  </div>
                 </div>
-                <p className="text-sm text-red-600">{job.company}</p>
-                <p className="text-sm text-gray-500">
-                  {job.location} · {job.duration} · {job.type}
-                </p>
-                <p className="mt-2 text-sm text-gray-600">{job.description}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {Array.isArray(job) &&
-                    job?.skills.map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full bg-blue-50 px-2 py-1 text-xs text-blue-700"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  <span className="rounded-full bg-gray-100 px-2 py-1 text-xs">
-                    {job.experienceRequired}
-                  </span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => loadMatches(job._id)}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white"
-                >
-                  Show Matches
-                </button>
-                {job.status === "open" && (
+                <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
                   <button
                     type="button"
-                    onClick={() => closeJob(job._id)}
-                    className="rounded-lg border px-4 py-2 text-sm"
+                    onClick={() => loadMatches(job._id)}
+                    className="rounded-lg bg-red-600 px-4 py-2 text-sm text-white"
                   >
-                    Close Job
+                    Show Matches ({job.matchCount ?? 0})
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => deleteJob(job._id)}
-                  className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600"
-                >
-                  Delete
-                </button>
-                {job.matchedCandidateId && (
-                  <span className="text-xs font-semibold text-teal-600">
-                    ✓ Candidate Matched
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {showMatch === job._id && (
-              <div className="mt-4 border-t pt-4">
-                <h4 className="mb-2 font-semibold">
-                  Matches ({matches.length})
-                </h4>
-                {matches.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    No matching candidates.
-                  </p>
-                ) : (
-                  matches.map((m) => (
-                    <div
-                      key={m.candidate._id}
-                      className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                  {job.status === "open" && (
+                    <button
+                      type="button"
+                      onClick={() => closeJob(job._id)}
+                      className="rounded-lg border px-4 py-2 text-sm"
                     >
-                      <div>
-                        <p className="font-medium">{m.candidate.name}</p>
-                        <p className="text-xs text-gray-500">
-                          Score: {m.score}% · Skills:{" "}
-                          {m.matchedSkills.join(", ")}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => allocate(m.candidate._id, job._id)}
-                        className="rounded-lg bg-red-600 px-3 py-1 text-sm text-white"
-                      >
-                        Allocate
-                      </button>
-                    </div>
-                  ))
-                )}
+                      Close Job
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => deleteJob(job._id)}
+                    className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
-            )}
-          </div>
-        ))}
+
+              {showMatch === job._id && (
+                <div className="mt-4 border-t pt-4">
+                  {matchLoading ? (
+                    <p className="text-sm text-gray-500">Loading matches...</p>
+                  ) : matches.length === 0 ? (
+                    <p className="text-sm font-medium text-gray-600">
+                      No profile matched for this requirement
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {matches.map((m) => (
+                        <div
+                          key={m._id}
+                          className="rounded-lg border bg-gray-50 p-4"
+                        >
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <p className="font-semibold">
+                                {m.candidate.name}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {m.candidate.location} ·{" "}
+                                {m.candidate.experience} ·{" "}
+                                {m.candidate.benchDays ?? 0}d bench
+                                {m.candidate.noticeDaysLeft !== null &&
+                                  ` · ${m.candidate.noticeDaysLeft}d notice`}
+                              </p>
+                              <p className="mt-2 text-sm">
+                                <span className="font-bold text-green-700">
+                                  {m.score}% match
+                                </span>
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {m.matchedSkills.map((s) => (
+                                  <span
+                                    key={s}
+                                    className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800"
+                                  >
+                                    ✓ {s}
+                                  </span>
+                                ))}
+                                {m.missingSkills.map((s) => (
+                                  <span
+                                    key={s}
+                                    className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-800"
+                                  >
+                                    ✗ {s}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => allocate(m.candidate._id, job._id)}
+                              className="shrink-0 rounded-lg bg-red-600 px-3 py-1 text-sm text-white"
+                            >
+                              Allocate
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
 
       {showModal && (
@@ -262,20 +308,21 @@ export default function RmJobsPage() {
           <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6">
             <h2 className="mb-4 text-xl font-bold">Post New Job</h2>
             <div className="space-y-3">
-              {[
-                ["title", "Title"],
-                ["company", "Company"],
-                ["location", "Location"],
-                ["description", "Description"],
-                ["skills", "Skills (comma-separated)"],
-                ["experienceRequired", "Experience Required"],
-                ["duration", "Duration"],
-              ].map(([key, label]) => (
+              {(
+                [
+                  ["title", "Title"],
+                  ["company", "Company"],
+                  ["location", "Location"],
+                  ["description", "Description"],
+                  ["skills", "Skills (comma-separated)"],
+                  ["experienceRequired", "Experience Required"],
+                ] as const
+              ).map(([key, label]) => (
                 <div key={key}>
                   <label className="text-sm font-medium">{label}</label>
                   <input
                     className="mt-1 w-full rounded-lg border px-3 py-2"
-                    value={form[key as keyof typeof form] as string}
+                    value={form[key]}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, [key]: e.target.value }))
                     }

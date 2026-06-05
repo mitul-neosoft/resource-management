@@ -12,8 +12,12 @@ export interface IJob {
   priority?: string;
   duration?: string;
   type?: string;
+  groupId?: string;
+  addedOn?: Date;
+  activeInternalProfiles?: string;
+  jdText?: string;
   createdBy: Types.ObjectId;
-  matchedCandidateId?: Types.ObjectId;
+  matchedUserId?: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,7 +25,7 @@ export interface IJob {
 const JobSchema = new Schema<IJob>(
   {
     title: { type: String, required: true, trim: true },
-    company: { type: String, required: true, trim: true },
+    company: { type: String, default: "Internal" },
     location: { type: String, required: true, trim: true },
     description: { type: String, required: true },
     skills: { type: [String], default: [] },
@@ -31,8 +35,12 @@ const JobSchema = new Schema<IJob>(
     priority: { type: String, default: "Medium" },
     duration: { type: String },
     type: { type: String, default: "Full-time" },
+    groupId: { type: String },
+    addedOn: { type: Date },
+    activeInternalProfiles: { type: String },
+    jdText: { type: String },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    matchedCandidateId: { type: Schema.Types.ObjectId, ref: "BenchCandidate" },
+    matchedUserId: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true }
 );

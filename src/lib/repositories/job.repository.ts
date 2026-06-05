@@ -26,10 +26,10 @@ export const jobRepository = {
     return Job.findByIdAndUpdate(id, { status: "closed" }, { new: true }).lean();
   },
 
-  setMatched(id: string, candidateId: string) {
+  setMatched(id: string, userId: string) {
     return Job.findByIdAndUpdate(
       id,
-      { matchedCandidateId: new Types.ObjectId(candidateId) },
+      { matchedUserId: new Types.ObjectId(userId) },
       { new: true }
     ).lean();
   },

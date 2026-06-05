@@ -8,5 +8,5 @@ export const GET = createHandler(
     if (!result) return jsonOk({ error: "Job not found" }, 404);
     return jsonOk(result);
   },
-  { roles: [UserRole.RESOURCE_MANAGER] }
+  { roles: [UserRole.USER, UserRole.RESOURCE_MANAGER] }
 );

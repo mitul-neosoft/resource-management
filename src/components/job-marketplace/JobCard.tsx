@@ -1,11 +1,5 @@
 "use client";
 
-// import {
-//   RiCalendarLine,
-//   RiMapPinLine,
-//   RiTimeLine,
-// } from "@remixicon/react";
-
 export interface Job {
   id: string | number;
   title: string;
@@ -18,23 +12,37 @@ export interface Job {
   type: string;
   match: number;
   isNew?: boolean;
+  missingSkills?: string[];
+  matchedSkills?: string[];
+  recommended?: boolean;
 }
 
 interface Props {
   job: Job;
   onApply?: (jobId: string | number) => void;
+  showMatchDetails?: boolean;
 }
 
-export default function JobCard({ job, onApply }: Props): React.JSX.Element {
+export default function JobCard({
+  job,
+  onApply,
+  showMatchDetails,
+}: Props): React.JSX.Element {
   const matchColor =
     job.match >= 90
       ? "bg-green-600"
       : job.match >= 70
         ? "bg-orange-500"
-        : "bg-gray-300";
+        : job.match > 0
+          ? "bg-yellow-500"
+          : "bg-gray-300";
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div
+      className={`relative overflow-hidden rounded-2xl border bg-white p-6 shadow-sm ${
+        job.recommended ? "border-red-300 ring-1 ring-red-200" : "border-gray-200"
+      }`}
+    >
       <div className={`absolute left-0 top-0 h-full w-1 ${matchColor}`} />
 
       {job.isNew && (
@@ -43,11 +51,15 @@ export default function JobCard({ job, onApply }: Props): React.JSX.Element {
         </div>
       )}
 
+      {job.recommended && (
+        <div className="absolute right-5 top-14 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">
+          RECOMMENDED
+        </div>
+      )}
+
       <div className="pl-2">
         <h3 className="text-xl font-bold text-gray-900">{job.title}</h3>
-
         <p className="mt-1 text-sm font-semibold text-red-600">{job.company}</p>
-
         <p className="mt-3 text-sm text-gray-500">{job.description}</p>
 
         <div className="mt-4 flex flex-wrap gap-2">
@@ -61,22 +73,31 @@ export default function JobCard({ job, onApply }: Props): React.JSX.Element {
           ))}
         </div>
 
+        {showMatchDetails && job.match > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {job.matchedSkills?.map((s) => (
+              <span
+                key={s}
+                className="rounded bg-green-50 px-2 py-0.5 text-xs text-green-700"
+              >
+                ✓ {s}
+              </span>
+            ))}
+            {job.missingSkills?.map((s) => (
+              <span
+                key={s}
+                className="rounded bg-red-50 px-2 py-0.5 text-xs text-red-700"
+              >
+                ✗ {s}
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="mt-5 flex flex-wrap gap-4 text-sm text-gray-500">
-          <div className="flex items-center gap-1">
-            {/* <RiTimeLine size={16} /> */}
-            {job.experience}
-          </div>
-
-          <div className="flex items-center gap-1">
-            {/* <RiCalendarLine size={16} /> */}
-            {job.duration}
-          </div>
-
-          <div className="flex items-center gap-1">
-            {/* <RiMapPinLine size={16} /> */}
-            {job.location}
-          </div>
-
+          <span>{job.experience}</span>
+          <span>{job.duration}</span>
+          <span>{job.location}</span>
           <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium">
             {job.type}
           </span>
@@ -89,10 +110,12 @@ export default function JobCard({ job, onApply }: Props): React.JSX.Element {
                 ? "bg-green-100 text-green-700"
                 : job.match >= 70
                   ? "bg-orange-100 text-orange-700"
-                  : "bg-gray-100 text-gray-600"
+                  : job.match > 0
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-gray-100 text-gray-600"
             }`}
           >
-            {job.match}% Match
+            {job.match > 0 ? `${job.match}% Match` : "No match data"}
           </div>
 
           <button
