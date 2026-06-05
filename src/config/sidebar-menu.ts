@@ -21,7 +21,7 @@ export const SIDEBAR_MENU: Record<UserRole, MenuItem[]> = {
     {
       name: "Interview",
       icon: "ri-user-search-line",
-      path: "/dashboard/interview",
+      path: "/interview",
     },
     {
       name: "Assessment",
