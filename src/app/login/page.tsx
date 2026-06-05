@@ -72,14 +72,18 @@ export default function LoginPage() {
     setApiError("");
 
     try {
-      await apiFetch("/api/auth/login", {
+      const data = await apiFetch<{
+        user: { role: string };
+      }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
           email: form.email,
           password: form.password,
         }),
       });
-      router.push("/dashboard");
+      const dest =
+        data.user.role === "RESOURCE_MANAGER" ? "/rm/dashboard" : "/dashboard";
+      router.push(dest);
       router.refresh();
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Login failed");

@@ -8,6 +8,8 @@ import MotivationCard from "@/components/ui/MotivationalQuo";
 import LDCard from "@/components/ui/LDevelopmenet";
 import EmployeeWelcomeCard from "@/components/ui/EmployeeCard";
 import SkillsCard from "@/components/ui/AddSkillsCard";
+import AppliedJobsCard from "@/components/ui/AppliedJobsCard";
+import LearningAssigned from "@/components/ui/LearningAssigned";
 
 interface DashboardResponse {
   user: {
@@ -64,10 +66,12 @@ export default function Dashboard(): React.JSX.Element {
                 error={error}
               />
               <LDCard learningProgress={data?.stats.learningProgress} />
+              <LearningAssigned />
             </Stack>
 
             <Stack gap={20} style={{ flex: 1, minWidth: 320 }}>
               <MotivationCard />
+              <AppliedJobsCard />
               <SkillsCard />
             </Stack>
           </Flex>

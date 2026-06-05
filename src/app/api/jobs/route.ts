@@ -1,54 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import connectDB from "@/lib/mongodb";
-import Job from "@/lib/models/Job";
-import { requireAuth, isAuthError } from "@/lib/auth/apiAuth";
-import { seedJobsIfEmpty } from "@/lib/seed/seedData";
+import { Types } from "mongoose";
+import { UserRole } from "@/constants/roles";
+import { createHandler, jsonOk } from "@/lib/api/handler";
+import { jobCreateSchema } from "@/lib/validations/schemas";
+import { jobRepository } from "@/lib/repositories/job.repository";
 
-export async function GET(request: NextRequest) {
-  try {
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
+export const GET = createHandler(
+  async ({ auth }) => {
+    const filter =
+      auth.role === UserRole.USER ? { status: "open" } : {};
+    const jobs = await jobRepository.findAll(filter);
+    return jsonOk({ jobs });
+  },
+  { roles: [UserRole.USER, UserRole.RESOURCE_MANAGER] }
+);
 
-    await connectDB();
-    await seedJobsIfEmpty();
-
-    const jobs = await Job.find().sort({ createdAt: -1 });
-    return NextResponse.json({ jobs });
-  } catch (error) {
-    console.error("GET jobs error:", error);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const auth = requireAuth(request);
-    if (isAuthError(auth)) return auth;
-
-    const { title, client, location, description, requiredSkills, status } =
-      await request.json();
-
-    if (!title || !client || !location || !description) {
-      return NextResponse.json(
-        { error: "Title, client, location, and description are required." },
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const job = await Job.create({
-      title,
-      client,
-      location,
-      description,
-      requiredSkills: requiredSkills || [],
-      status: status || "open",
+export const POST = createHandler(
+  async ({ auth, body }) => {
+    const data = body as ReturnType<typeof jobCreateSchema.parse>;
+    const job = await jobRepository.create({
+      ...data,
+      createdBy: new Types.ObjectId(auth.userId),
     });
-
-    return NextResponse.json({ message: "Job created.", job }, { status: 201 });
-  } catch (error) {
-    console.error("POST jobs error:", error);
-    return NextResponse.json({ error: "Internal server error." }, { status: 500 });
-  }
-}
+    return jsonOk({ message: "Job created.", job }, 201);
+  },
+  { roles: [UserRole.RESOURCE_MANAGER], schema: jobCreateSchema }
+);

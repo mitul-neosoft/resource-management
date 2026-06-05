@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, type TokenPayload } from "./jwt";
+import { UserRole } from "@/constants/roles";
+
+export interface AuthContext {
+  userId: string;
+  email: string;
+  employeeId: string;
+  role: UserRole;
+}
 
 export function getTokenFromRequest(request: NextRequest): string | null {
   const authHeader = request.headers.get("authorization");
@@ -11,7 +19,7 @@ export function getTokenFromRequest(request: NextRequest): string | null {
 
 export function requireAuth(
   request: NextRequest
-): { payload: TokenPayload } | NextResponse {
+): { payload: AuthContext } | NextResponse {
   const token = getTokenFromRequest(request);
   if (!token) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,12 +35,17 @@ export function requireAuth(
       userId: payload.userId,
       email: payload.email,
       employeeId: payload.employeeId,
+      role: (payload.role as UserRole) || UserRole.USER,
     },
   };
 }
 
 export function isAuthError(
-  result: { payload: TokenPayload } | NextResponse
+  result: { payload: AuthContext } | NextResponse
 ): result is NextResponse {
   return result instanceof NextResponse;
+}
+
+export function requireRole(auth: AuthContext, roles: UserRole[]): boolean {
+  return roles.includes(auth.role);
 }

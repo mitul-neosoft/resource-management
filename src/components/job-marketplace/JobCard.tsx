@@ -22,9 +22,10 @@ export interface Job {
 
 interface Props {
   job: Job;
+  onApply?: (jobId: string | number) => void;
 }
 
-export default function JobCard({ job }: Props): React.JSX.Element {
+export default function JobCard({ job, onApply }: Props): React.JSX.Element {
   const matchColor =
     job.match >= 90
       ? "bg-green-600"
@@ -94,7 +95,11 @@ export default function JobCard({ job }: Props): React.JSX.Element {
             {job.match}% Match
           </div>
 
-          <button className="rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white transition hover:bg-red-700">
+          <button
+            type="button"
+            onClick={() => onApply?.(job.id)}
+            className="rounded-lg bg-red-600 px-5 py-2.5 font-medium text-white transition hover:bg-red-700"
+          >
             Apply Now →
           </button>
         </div>
