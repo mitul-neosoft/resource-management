@@ -6,7 +6,6 @@ import { generateToken } from "@/lib/auth/jwt";
 import { loginSchema } from "@/lib/validations/schemas";
 import { UserRole } from "@/constants/roles";
 import { resolveRoleForEmail } from "@/constants/auth";
-import { ensureDashboardStats, seedLearningForEmployee } from "@/lib/seed/seedData";
 import { seedRmDataIfEmpty } from "@/lib/seed/rmSeed";
 
 export async function POST(request: Request) {
@@ -31,11 +30,6 @@ export async function POST(request: Request) {
     }
 
     const employeeId = user.employeeId || String(user._id);
-
-    if (user.role === UserRole.USER) {
-      await ensureDashboardStats(employeeId);
-      await seedLearningForEmployee(employeeId);
-    }
 
     if (user.role === UserRole.RESOURCE_MANAGER) {
       await seedRmDataIfEmpty(String(user._id));

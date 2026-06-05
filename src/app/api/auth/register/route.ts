@@ -4,9 +4,8 @@ import connectDB from "@/lib/mongodb";
 import User from "@/lib/models/User";
 import { resolveRoleForEmail } from "@/constants/auth";
 import { UserRole } from "@/constants/roles";
-import { benchCandidateRepository } from "@/lib/repositories/benchCandidate.repository";
 import { registerSchema } from "@/lib/validations/schemas";
-import { ensureDashboardStats } from "@/lib/seed/seedData";
+import { parseSkillsFromJD } from "@/lib/utils/skillsParser";
 
 export async function POST(request: Request) {
   try {
@@ -22,6 +21,8 @@ export async function POST(request: Request) {
     const role = resolveRoleForEmail(email);
     const hashedPassword = await bcrypt.hash(body.password, 10);
     const employeeId = `EMP-${Date.now().toString().slice(-6)}`;
+    const designation =
+      role === UserRole.RESOURCE_MANAGER ? "Resource Manager" : "Software Developer";
 
     const user = await User.create({
       firstName: body.firstName.trim(),
@@ -31,27 +32,11 @@ export async function POST(request: Request) {
       role,
       isActive: true,
       employeeId,
-      designation:
-        role === UserRole.RESOURCE_MANAGER
-          ? "Resource Manager"
-          : "Software Developer",
+      designation,
+      jd: designation,
+      skills: parseSkillsFromJD(designation),
+      noticePeriodDays: 90,
     });
-
-    if (role === UserRole.USER) {
-      await ensureDashboardStats(employeeId);
-      await benchCandidateRepository.upsertByEmail(email, {
-        name: `${body.firstName.trim()} ${body.lastName.trim()}`,
-        email,
-        role: user.designation || "Software Developer",
-        skills: [],
-        experience: "0 yrs",
-        location: "Remote",
-        benchDays: 0,
-        noticePeriodDays: 90,
-        status: "Active",
-        userId: user._id,
-      });
-    }
 
     return NextResponse.json(
       {

@@ -1,24 +1,29 @@
-import { benchCandidateRepository } from "@/lib/repositories/benchCandidate.repository";
+import { userRepository } from "@/lib/repositories/user.repository";
 import { jobRepository } from "@/lib/repositories/job.repository";
 import { courseRepository } from "@/lib/repositories/course.repository";
+import { matchRepository } from "@/lib/repositories/match.repository";
 import Allocation from "@/lib/models/Allocation";
-import BenchCandidate from "@/lib/models/BenchCandidate";
+import Match from "@/lib/models/Match";
+import { calculateBenchDays, calculateNoticeDaysLeft } from "@/lib/utils/bench";
 
 export async function getReportsOverview() {
-  const candidates = await benchCandidateRepository.findAll();
+  const users = await userRepository.findBenchUsersEnriched();
   const jobs = await jobRepository.findAll();
   const assignments = await courseRepository.findAssignments();
 
-  const totalBench = candidates.length;
-  const criticalBench = candidates.filter((c) => c.benchDays >= 30).length;
+  const benchDaysList = users
+    .map((u) => u.benchDays)
+    .filter((d): d is number => d !== null);
+
+  const totalBench = users.length;
+  const criticalBench = users.filter((u) => (u.benchDays ?? 0) >= 30).length;
   const averageBenchDays =
-    totalBench > 0
+    benchDaysList.length > 0
       ? Math.round(
-          candidates.reduce((s, c) => s + c.benchDays, 0) / totalBench
+          benchDaysList.reduce((s, d) => s + d, 0) / benchDaysList.length
         )
       : 0;
 
-  const totalJobs = jobs.length;
   const openJobs = jobs.filter((j) => j.status === "open");
   const urgentJobs = openJobs.filter(
     (j) => j.priority === "High" || j.priority === "Critical"
@@ -28,6 +33,12 @@ export async function getReportsOverview() {
   const allocationRate =
     totalBench > 0 ? Math.round((allocationCount / totalBench) * 100) : 0;
 
+  const totalMatches = await Match.countDocuments({ score: { $gt: 0 } });
+  const matchRatio =
+    openJobs.length > 0
+      ? Math.round(totalMatches / openJobs.length)
+      : 0;
+
   const completedAssignments = assignments.filter(
     (a) => a.progress >= 100 || a.status === "Completed"
   ).length;
@@ -36,36 +47,51 @@ export async function getReportsOverview() {
       ? Math.round((completedAssignments / assignments.length) * 100)
       : 0;
 
+  const avgLearning =
+    assignments.length > 0
+      ? Math.round(
+          assignments.reduce((s, a) => s + a.progress, 0) / assignments.length
+        )
+      : 0;
+
   const benchAgeBreakdown = {
-    fresh: candidates.filter((c) => c.benchDays <= 7).length,
-    moderate: candidates.filter((c) => c.benchDays > 7 && c.benchDays <= 20)
-      .length,
-    highRisk: candidates.filter((c) => c.benchDays > 20 && c.benchDays <= 30)
-      .length,
-    critical: candidates.filter((c) => c.benchDays > 30).length,
+    fresh: users.filter((u) => (u.benchDays ?? 0) <= 7).length,
+    moderate: users.filter(
+      (u) => (u.benchDays ?? 0) > 7 && (u.benchDays ?? 0) <= 20
+    ).length,
+    highRisk: users.filter(
+      (u) => (u.benchDays ?? 0) > 20 && (u.benchDays ?? 0) <= 30
+    ).length,
+    critical: users.filter((u) => (u.benchDays ?? 0) > 30).length,
   };
 
-  const noticeRisk = await BenchCandidate.find({
-    noticePeriodDays: { $lte: 15 },
-    status: { $ne: "Allocated" },
-  })
-    .sort({ noticePeriodDays: 1 })
-    .limit(5)
-    .lean();
+  const noticeRisk = users
+    .filter((u) => u.resignDate && (u.noticeDaysLeft ?? 999) <= 15)
+    .sort((a, b) => (a.noticeDaysLeft ?? 0) - (b.noticeDaysLeft ?? 0))
+    .slice(0, 10)
+    .map((u) => ({
+      _id: u._id,
+      name: u.name,
+      role: u.designation || u.jd,
+      benchDays: u.benchDays,
+      noticePeriodDays: u.noticeDaysLeft,
+    }));
 
-  const noMatchCount = candidates.filter(
-    (c) => !c.assignedJobId && c.status !== "Allocated"
+  const noMatchCount = users.filter(
+    (u) => !u.assignedJobId && u.status !== "Allocated"
   ).length;
 
   return {
     totalBench,
     criticalBench,
     averageBenchDays,
-    totalJobs,
+    totalJobs: jobs.length,
     openJobs: openJobs.length,
     urgentJobs,
     allocationRate,
+    matchRatio,
     courseCompletionRate,
+    learningProgress: avgLearning,
     benchAgeBreakdown,
     noticeRisk,
     candidatesWithNoMatch: noMatchCount,

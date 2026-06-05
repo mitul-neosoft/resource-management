@@ -1,4 +1,4 @@
-import mongoose, { Schema, type Model } from "mongoose";
+import mongoose, { Schema, type Model, Types } from "mongoose";
 import { UserRole } from "@/constants/roles";
 
 export interface IUser {
@@ -10,8 +10,22 @@ export interface IUser {
   isActive: boolean;
   employeeId?: string;
   designation?: string;
+  jd?: string;
+  rating?: string;
+  experience?: string;
+  status?: string;
+  team?: string;
+  location?: string;
+  details?: string;
+  domestic?: string;
+  ldOngoing?: string;
+  candidateTaggedOn?: Date;
+  skills: string[];
   resignDate?: Date;
   clientContractEndDate?: Date;
+  noticePeriodDays: number;
+  assignedJobId?: Types.ObjectId | null;
+  assignedCourseId?: Types.ObjectId | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,8 +50,26 @@ const UserSchema = new Schema<IUser>(
     isActive: { type: Boolean, default: true },
     employeeId: { type: String },
     designation: { type: String },
+    jd: { type: String },
+    rating: { type: String },
+    experience: { type: String },
+    status: { type: String, default: "Active" },
+    team: { type: String },
+    location: { type: String },
+    details: { type: String },
+    domestic: { type: String },
+    ldOngoing: { type: String },
+    candidateTaggedOn: { type: Date },
+    skills: { type: [String], default: [] },
     resignDate: { type: Date },
     clientContractEndDate: { type: Date },
+    noticePeriodDays: { type: Number, default: 90 },
+    assignedJobId: { type: Schema.Types.ObjectId, ref: "Job", default: null },
+    assignedCourseId: {
+      type: Schema.Types.ObjectId,
+      ref: "Course",
+      default: null,
+    },
   },
   { timestamps: true }
 );

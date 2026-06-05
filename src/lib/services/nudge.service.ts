@@ -1,8 +1,6 @@
 import { Types } from "mongoose";
 import Notification from "@/lib/models/Notification";
 import { courseRepository } from "@/lib/repositories/course.repository";
-import User from "@/lib/models/User";
-
 export async function sendNudge(params: {
   userId?: string;
   candidateId?: string;
@@ -21,7 +19,11 @@ export async function sendNudge(params: {
       params.courseAssignmentId
     );
     if (assignment) {
-      userId = String(assignment.userId);
+      userId = String(
+        typeof assignment.userId === "object" && assignment.userId !== null
+          ? (assignment.userId as { _id: string })._id
+          : assignment.userId
+      );
       const course = assignment.courseId as { title?: string };
       title = "Course Nudge";
       message =
@@ -31,8 +33,7 @@ export async function sendNudge(params: {
   }
 
   if (!userId && params.candidateId) {
-    const user = await User.findOne({}).limit(1);
-    userId = user ? String(user._id) : undefined;
+    userId = params.candidateId;
   }
 
   const notification = await Notification.create({

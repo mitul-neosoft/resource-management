@@ -1,29 +1,31 @@
 import { Types } from "mongoose";
 import Allocation from "@/lib/models/Allocation";
-import { benchCandidateRepository } from "@/lib/repositories/benchCandidate.repository";
+import { userRepository } from "@/lib/repositories/user.repository";
 import { jobRepository } from "@/lib/repositories/job.repository";
 
 export async function allocateCandidateToJob(
-  candidateId: string,
+  userId: string,
   jobId: string,
   allocatedBy: string
 ) {
-  const candidate = await benchCandidateRepository.findById(candidateId);
+  const user = await userRepository.findBenchUserById(userId);
   const job = await jobRepository.findById(jobId);
 
-  if (!candidate) throw new Error("Candidate not found");
+  if (!user) throw new Error("Candidate not found");
   if (!job) throw new Error("Job not found");
   if (job.status === "closed") throw new Error("Job is closed");
 
-  await benchCandidateRepository.update(candidateId, {
+  await userRepository.update(userId, {
     assignedJobId: new Types.ObjectId(jobId),
     status: "Allocated",
   });
 
-  await jobRepository.setMatched(jobId, candidateId);
+  await jobRepository.update(jobId, {
+    matchedUserId: new Types.ObjectId(userId),
+  });
 
   const allocation = await Allocation.create({
-    candidateId: new Types.ObjectId(candidateId),
+    candidateId: new Types.ObjectId(userId),
     jobId: new Types.ObjectId(jobId),
     allocatedBy: new Types.ObjectId(allocatedBy),
   });
@@ -33,7 +35,7 @@ export async function allocateCandidateToJob(
 
 export async function getRecentAllocations(limit = 5) {
   return Allocation.find()
-    .populate("candidateId", "name email role location")
+    .populate("candidateId", "firstName lastName email designation location")
     .populate("jobId", "title company location")
     .sort({ createdAt: -1 })
     .limit(limit)

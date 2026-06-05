@@ -14,18 +14,31 @@ export interface Job {
   type: string;
   match: number;
   isNew?: boolean;
+  missingSkills?: string[];
+  matchedSkills?: string[];
+  recommended?: boolean;
 }
 
 interface JobListProps {
   jobs: Job[];
   onApply?: (jobId: string | number) => void;
+  showMatchDetails?: boolean;
 }
 
-export default function JobList({ jobs, onApply }: JobListProps): React.JSX.Element {
+export default function JobList({
+  jobs,
+  onApply,
+  showMatchDetails,
+}: JobListProps): React.JSX.Element {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       {jobs.map((job) => (
-        <JobCard key={job.id} job={job} onApply={onApply} />
+        <JobCard
+          key={job.id}
+          job={job}
+          onApply={onApply}
+          showMatchDetails={showMatchDetails}
+        />
       ))}
     </div>
   );

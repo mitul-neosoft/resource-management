@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import User from "@/lib/models/User";
-import DashboardStats from "@/lib/models/DashboardStats";
 import Skill from "@/lib/models/Skill";
-import LearningCourse from "@/lib/models/LearningCourse";
+import { courseRepository } from "@/lib/repositories/course.repository";
+import Interview from "@/lib/models/Interview";
 import { requireAuth, isAuthError } from "@/lib/auth/apiAuth";
-import { ensureDashboardStats } from "@/lib/seed/seedData";
+import {
+  calculateBenchDays,
+  calculateNoticeDaysLeft,
+} from "@/lib/utils/bench";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,53 +17,54 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const { employeeId } = auth.payload;
-    await ensureDashboardStats(employeeId);
-
-    const [user, stats, skillCount, courses] = await Promise.all([
-      User.findById(auth.payload.userId).select(
-        "firstName lastName email employeeId designation resignDate clientContractEndDate role"
-      ),
-      DashboardStats.findOne({ employeeId }),
-      Skill.countDocuments({ employeeId }),
-      LearningCourse.find({ employeeId }),
-    ]);
-
+    const user = await User.findById(auth.payload.userId).select("-password");
     if (!user) {
       return NextResponse.json({ error: "User not found." }, { status: 404 });
     }
 
-    const avgLearning =
-      courses.length > 0
-        ? Math.round(
-            courses.reduce((sum, c) => sum + c.progress, 0) / courses.length
-          )
-        : stats?.learningProgress ?? 0;
+    const employeeId = user.employeeId || String(user._id);
+    const [skillCount, assignments, interviews] = await Promise.all([
+      Skill.countDocuments({ employeeId }),
+      courseRepository.findAssignmentsByUser(auth.payload.userId),
+      Interview.find({ userId: auth.payload.userId })
+        .sort({ scheduledAt: -1 })
+        .limit(3)
+        .lean(),
+    ]);
 
-    if (stats && stats.totalSkills !== skillCount) {
-      stats.totalSkills = skillCount;
-      stats.learningProgress = avgLearning;
-      await stats.save();
-    }
+    const avgLearning =
+      assignments.length > 0
+        ? Math.round(
+            assignments.reduce((sum, c) => sum + c.progress, 0) /
+              assignments.length
+          )
+        : 0;
+
+    const benchDays = calculateBenchDays(user.clientContractEndDate);
+    const noticeDaysLeft = calculateNoticeDaysLeft(
+      user.resignDate,
+      user.noticePeriodDays ?? 90
+    );
 
     return NextResponse.json({
       user: {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        employeeId: user.employeeId || employeeId,
-        designation: user.designation || "Employee",
+        employeeId,
+        designation: user.designation || user.jd || "Employee",
         resignDate: user.resignDate,
         clientContractEndDate: user.clientContractEndDate,
+        skills: user.skills || [],
       },
       stats: {
         employeeId,
-        benchDays: stats?.benchDays ?? 0,
-        noticeDaysLeft: stats?.noticeDaysLeft ?? 0,
-        totalSkills: skillCount,
+        benchDays,
+        noticeDaysLeft,
+        totalSkills: skillCount + (user.skills?.length || 0),
         learningProgress: avgLearning,
-        updatedAt: stats?.updatedAt,
       },
+      recentInterviews: interviews,
     });
   } catch (error) {
     console.error("Dashboard error:", error);

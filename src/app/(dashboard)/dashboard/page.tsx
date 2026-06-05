@@ -10,6 +10,8 @@ import EmployeeWelcomeCard from "@/components/ui/EmployeeCard";
 import SkillsCard from "@/components/ui/AddSkillsCard";
 import AppliedJobsCard from "@/components/ui/AppliedJobsCard";
 import LearningAssigned from "@/components/ui/LearningAssigned";
+import SkillMatrixCard from "@/components/ui/SkillMatrixCard";
+import RecentInterviewsCard from "@/components/ui/RecentInterviewsCard";
 
 interface DashboardResponse {
   user: {
@@ -20,13 +22,22 @@ interface DashboardResponse {
     designation: string;
     resignDate?: string;
     clientContractEndDate?: string;
+    skills?: string[];
   };
   stats: {
-    benchDays: number;
-    noticeDaysLeft: number;
+    benchDays: number | null;
+    noticeDaysLeft: number | null;
     totalSkills: number;
     learningProgress: number;
   };
+  recentInterviews: Array<{
+    _id: string;
+    title: string;
+    status: string;
+    scheduledAt?: string;
+    feedback?: string;
+    interviewer?: string;
+  }>;
 }
 
 export default function Dashboard(): React.JSX.Element {
@@ -71,7 +82,9 @@ export default function Dashboard(): React.JSX.Element {
 
             <Stack gap={20} style={{ flex: 1, minWidth: 320 }}>
               <MotivationCard />
+              <SkillMatrixCard skills={data?.user.skills} />
               <AppliedJobsCard />
+              <RecentInterviewsCard interviews={data?.recentInterviews} />
               <SkillsCard />
             </Stack>
           </Flex>

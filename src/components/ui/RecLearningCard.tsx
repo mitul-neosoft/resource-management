@@ -12,23 +12,21 @@ const T = {
   muted: "#6B7280",
 };
 
-interface Course {
+interface Assignment {
   _id: string;
-  title: string;
-  description: string;
   progress: number;
-  assignedBy: string;
+  courseId: { title: string; description?: string };
 }
 
-export default function RecommendedForYou(): React.JSX.Element {
-  const [courses, setCourses] = useState<Course[]>([]);
+export default function RecommendedForYou() {
+  const [courses, setCourses] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<{ courses: Course[] }>("/api/learning")
+    apiFetch<{ assignments: Assignment[] }>("/api/course-assignments")
       .then((data) => {
-        const recommended = data.courses.filter((c) => c.progress < 80);
-        setCourses(recommended.slice(0, 3));
+        const low = data.assignments.filter((c) => c.progress < 80);
+        setCourses(low.slice(0, 3));
       })
       .catch(() => setCourses([]))
       .finally(() => setLoading(false));
@@ -41,12 +39,12 @@ export default function RecommendedForYou(): React.JSX.Element {
           Recommended for You
         </h3>
         <p style={{ margin: "4px 0 0", fontSize: 12, color: T.muted }}>
-          Courses with room to grow
+          Assigned courses with room to grow
         </p>
       </div>
 
       {loading ? (
-        <p style={{ color: T.muted }}>Loading recommendations...</p>
+        <p style={{ color: T.muted }}>Loading...</p>
       ) : courses.length === 0 ? (
         <p style={{ color: T.muted }}>No recommendations right now.</p>
       ) : (
@@ -77,7 +75,7 @@ export default function RecommendedForYou(): React.JSX.Element {
                   fontWeight: 600,
                 }}
               >
-                {item.assignedBy}
+                Assigned
               </span>
               <h4
                 style={{
@@ -87,7 +85,7 @@ export default function RecommendedForYou(): React.JSX.Element {
                   margin: "10px 0 4px",
                 }}
               >
-                {item.title}
+                {item.courseId?.title}
               </h4>
               <p style={{ color: T.muted, fontSize: 12, margin: "0 0 6px" }}>
                 Progress: {item.progress}%
@@ -96,12 +94,12 @@ export default function RecommendedForYou(): React.JSX.Element {
                 style={{
                   color: T.muted,
                   fontSize: 12,
-                  margin: "0 0 14px",
+                  margin: 0,
                   fontStyle: "italic",
                   lineHeight: 1.5,
                 }}
               >
-                {item.description}
+                {item.courseId?.description}
               </p>
             </div>
           ))}

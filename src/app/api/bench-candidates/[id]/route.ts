@@ -1,24 +1,38 @@
 import { UserRole } from "@/constants/roles";
 import { createHandler, jsonOk } from "@/lib/api/handler";
-import { benchCandidateSchema } from "@/lib/validations/schemas";
-import { benchCandidateRepository } from "@/lib/repositories/benchCandidate.repository";
+import { userRepository } from "@/lib/repositories/user.repository";
 
 export const GET = createHandler(
   async ({ params }) => {
-    const candidate = await benchCandidateRepository.findById(params.id);
-    if (!candidate) return jsonOk({ error: "Not found" }, 404);
-    return jsonOk({ candidate });
+    const user = await userRepository.findBenchUserById(params.id);
+    if (!user) return jsonOk({ error: "Not found" }, 404);
+    return jsonOk({ candidate: user });
   },
   { roles: [UserRole.RESOURCE_MANAGER] }
 );
 
 export const PUT = createHandler(
   async ({ params, body }) => {
-    const data = body as Partial<ReturnType<typeof benchCandidateSchema.parse>>;
-    const candidate = await benchCandidateRepository.update(params.id, {
-      ...data,
-      experience: data.experience !== undefined ? String(data.experience) : undefined,
-    });
+    const data = body as {
+      clientContractEndDate?: string;
+      resignDate?: string | null;
+      noticePeriodDays?: number;
+      status?: string;
+      location?: string;
+      experience?: string;
+    };
+
+    const update: Record<string, unknown> = { ...data };
+    if (data.clientContractEndDate) {
+      update.clientContractEndDate = new Date(data.clientContractEndDate);
+    }
+    if (data.resignDate === null) {
+      update.resignDate = null;
+    } else if (data.resignDate) {
+      update.resignDate = new Date(data.resignDate);
+    }
+
+    const candidate = await userRepository.update(params.id, update);
     if (!candidate) return jsonOk({ error: "Not found" }, 404);
     return jsonOk({ message: "Updated.", candidate });
   },
@@ -27,7 +41,7 @@ export const PUT = createHandler(
 
 export const DELETE = createHandler(
   async ({ params }) => {
-    await benchCandidateRepository.delete(params.id);
+    await userRepository.delete(params.id);
     return jsonOk({ message: "Deleted." });
   },
   { roles: [UserRole.RESOURCE_MANAGER] }
