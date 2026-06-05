@@ -60,7 +60,7 @@ export async function getJobMatches(jobId: string) {
   }
 
   const enriched = matches.map((m) => {
-    const user = m.userId as {
+    const user = m.userId as unknown as {
       _id: string;
       firstName: string;
       lastName: string;

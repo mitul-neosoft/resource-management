@@ -22,12 +22,13 @@ export async function POST(request: Request) {
 
     const resetToken = crypto.randomBytes(20).toString("hex");
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
-    await ResetToken.create({ user: user._id, token: hashedToken });
+    await ResetToken.create({ user: user._id, token: hashedToken, expiresAt });
 
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/forgot-password?token=${resetToken}`;
     const html = `
-      <p>Hi ${user.name || "User"},</p>
+      <p>Hi ${user.firstName || "User"},</p>
       <p>We received a request to reset your password. Use the code below or follow the link to reset it securely.</p>
       <p><strong>Reset code:</strong> ${resetToken}</p>
       <p><strong>Reset link:</strong> <a href="${resetUrl}">${resetUrl}</a></p>

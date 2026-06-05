@@ -21,7 +21,7 @@ export async function sendNudge(params: {
     if (assignment) {
       userId = String(
         typeof assignment.userId === "object" && assignment.userId !== null
-          ? (assignment.userId as { _id: string })._id
+          ? (assignment.userId as unknown as { _id: string })._id
           : assignment.userId
       );
       const course = assignment.courseId as { title?: string };

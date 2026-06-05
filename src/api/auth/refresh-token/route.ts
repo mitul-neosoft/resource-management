@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import connectDB from "@/lib/config/db";
 import RefreshToken from "@/lib/models/RefreshToken";
 import { verifyRefreshToken, generateAccessToken } from "@/lib/auth/jwt";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const refreshToken = request.cookies.get("refreshToken")?.value || body.refreshToken;

@@ -122,7 +122,7 @@ export default function EmployeeWelcomeCard({
         )}
         {showNotice && stats?.noticeDaysLeft !== null && (
           <StatTile
-            value={stats.noticeDaysLeft}
+            value={stats!.noticeDaysLeft!}
             label="Notice Days Left"
             valueColor="#FFD54F"
           />

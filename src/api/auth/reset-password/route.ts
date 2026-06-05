@@ -35,9 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid or expired reset token." }, { status: 400 });
     }
 
-    // Check if token is expired (1 hour)
-    const tokenAge = Date.now() - new Date(resetToken.createdAt).getTime();
-    if (tokenAge > 3600000) {
+    // Check if token is expired
+    if (resetToken.expiresAt < new Date()) {
       await ResetToken.deleteOne({ _id: resetToken._id });
       return NextResponse.json({ error: "Reset token has expired." }, { status: 400 });
     }

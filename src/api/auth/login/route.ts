@@ -25,8 +25,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
     }
 
-    const accessToken = generateAccessToken(user._id, user.email);
-    const refreshToken = generateRefreshToken(user._id, user.email);
+    const accessToken = generateAccessToken(String(user._id), user.email);
+    const refreshToken = generateRefreshToken(String(user._id), user.email);
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
@@ -38,9 +38,9 @@ export async function POST(request: Request) {
         message: "Login successful.",
         user: {
           id: user._id,
-          name: user.name,
+          name: `${user.firstName} ${user.lastName}`,
           email: user.email,
-          mustChangePassword: user.mustChangePassword || false,
+          mustChangePassword: (user as any).mustChangePassword || false,
         },
       },
       { status: 200 }

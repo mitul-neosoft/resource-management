@@ -14,6 +14,7 @@ import {
 } from "@/lib/utils/employeeId";
 
 interface BenchRow {
+  [key: string]: string | number | undefined;
   Name?: string;
   "Employee ID"?: string | number;
   "Manager Employee ID"?: string | number;
