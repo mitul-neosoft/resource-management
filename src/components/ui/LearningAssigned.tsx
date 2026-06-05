@@ -111,6 +111,7 @@ export default function LearningAssigned(): React.JSX.Element {
                 </p>
                 <input
                   type="range"
+                  className="cursor-pointer"
                   min={0}
                   max={100}
                   value={a.progress}
