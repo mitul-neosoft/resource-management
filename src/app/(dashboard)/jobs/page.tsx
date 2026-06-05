@@ -3,36 +3,37 @@
 import { useEffect, useState } from "react";
 import { Box, Container, Loader, Stack, Text, Title } from "@mantine/core";
 import { apiFetch } from "@/lib/api/client";
-
 import JobFilters from "@/components/job-marketplace/JobFilters";
 import JobList, { type Job } from "@/components/job-marketplace/JobList";
 
 interface ApiJob {
   _id: string;
   title: string;
-  client: string;
+  company: string;
   location: string;
   description: string;
-  requiredSkills: string[];
+  skills: string[];
+  experienceRequired: string;
   status: string;
+  duration?: string;
+  type?: string;
   createdAt: string;
 }
 
 function mapJob(job: ApiJob): Job {
   const created = new Date(job.createdAt);
   const isNew = Date.now() - created.getTime() < 24 * 60 * 60 * 1000;
-
   return {
     id: job._id,
     title: job.title,
-    company: job.client,
+    company: job.company,
     description: job.description,
-    skills: job.requiredSkills,
-    experience: "3+ yrs",
-    duration: "6 months",
+    skills: job.skills || [],
+    experience: job.experienceRequired,
+    duration: job.duration || "6 months",
     location: job.location,
-    type: job.status === "open" ? "Full-time" : job.status,
-    match: 70 + (job.requiredSkills.length % 25),
+    type: job.type || "Full-time",
+    match: 70 + ((job.skills?.length || 0) % 25),
     isNew,
   };
 }
@@ -51,6 +52,18 @@ export default function JobMarketplace(): React.JSX.Element {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleApply = async (jobId: string | number) => {
+    try {
+      await apiFetch("/api/job-applications", {
+        method: "POST",
+        body: JSON.stringify({ jobId: String(jobId) }),
+      });
+      alert("Application submitted!");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Apply failed");
+    }
+  };
+
   const newJobs = jobs.filter((job) => job.isNew).length;
 
   return (
@@ -58,14 +71,9 @@ export default function JobMarketplace(): React.JSX.Element {
       <Container size="xl">
         <Stack gap={4} mb={20}>
           <Title order={2}>Internal Job Marketplace</Title>
-          <div className="flex items-center gap-3 mt-1">
-            <Text size="sm" c="dimmed">
-              {jobs.length} openings
-            </Text>
-            <span className="inline-flex items-center rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-700 border border-green-200">
-              {newJobs} New Today
-            </span>
-          </div>
+          <Text size="sm" c="dimmed">
+            {jobs.length} openings · {newJobs} new today
+          </Text>
         </Stack>
 
         {loading && (
@@ -73,17 +81,11 @@ export default function JobMarketplace(): React.JSX.Element {
             <Loader color="red" />
           </div>
         )}
-
-        {error && (
-          <Text c="red" mb="md">
-            {error}
-          </Text>
-        )}
-
+        {error && <Text c="red">{error}</Text>}
         {!loading && !error && (
           <Stack gap={20}>
             <JobFilters />
-            <JobList jobs={jobs} />
+            <JobList jobs={jobs} onApply={handleApply} />
           </Stack>
         )}
       </Container>

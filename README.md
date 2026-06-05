@@ -1,56 +1,88 @@
 # Resource Management Portal
 
-Full-stack employee resource portal built with Next.js (App Router), TypeScript, Mantine UI, MongoDB, and JWT authentication.
+Dual-role full-stack portal: **USER** (employee) and **RESOURCE_MANAGER** (RM).
 
-## Prerequisites
+## Tech Stack
 
-- Node.js 18+
-- MongoDB (local or Atlas)
+- Next.js 16 (App Router), TypeScript, Mantine UI
+- MongoDB + Mongoose
+- JWT auth (httpOnly cookies + role cookie)
+- Zod validation, repository + service layers
+- Excel upload (`xlsx`) for bench candidates
 
 ## Setup
-
-1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Configure environment variables in `.env.local`:
+`.env.local`:
 
 ```env
 MONGODB_URI=mongodb://127.0.0.1:27017/resource-management
 JWT_SECRET=your-secure-jwt-secret
 ```
 
-3. Start MongoDB locally (if not using Atlas).
-
-4. Run the development server:
-
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000)
+## Roles
 
-## API Endpoints
+| Email | Role |
+|-------|------|
+| `akash1111@yopmail.com` | `RESOURCE_MANAGER` (auto-assigned) |
+| Any other email | `USER` (auto-assigned on register) |
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register user |
-| POST | `/api/auth/login` | Login (sets JWT cookie) |
-| POST | `/api/auth/forgot-password` | Request password reset |
-| POST | `/api/auth/reset-password` | Reset password with token |
-| POST | `/api/auth/logout` | Clear session |
-| GET | `/api/dashboard` | Dashboard stats |
-| GET/POST | `/api/skills` | List/create skills |
-| PUT/DELETE | `/api/skills/[id]` | Update/delete skill |
-| GET/POST | `/api/jobs` | List/create jobs |
-| PUT/DELETE | `/api/jobs/[id]` | Update/delete job |
-| GET/POST | `/api/learning` | List/create courses |
-| PUT/DELETE | `/api/learning/[id]` | Update/delete course |
+Registration never asks for role.
 
-## Notes
+## Portals
 
-- In development, `POST /api/auth/forgot-password` returns a `resetToken` in the response for testing without email.
-- Jobs and learning courses are auto-seeded on first access when collections are empty.
-- Protected routes: `/dashboard`, `/jobs`, `/learning`
+### USER (`/dashboard`, `/jobs`, `/learning`, `/dashboard/interview`, `/dashboard/assessment`)
+
+- Dashboard: welcome, skills, applied jobs, learning, motivation
+- Job marketplace with apply
+- Course assignments & progress
+
+### RESOURCE MANAGER (`/rm/dashboard`, `/rm/bench`, `/rm/jobs`, `/rm/lnd`, `/rm/reports`)
+
+- Overview with summary cards, critical bench, urgent jobs, allocations
+- Bench candidate CRUD + Excel upload
+- Job CRUD, close, skill/experience matching, allocate
+- L&D: courses, assign, nudge
+- Reports & analytics
+
+## Key APIs
+
+| Endpoint | Description |
+|----------|-------------|
+| `POST /api/auth/register` | Register (auto role) |
+| `POST /api/auth/login` | Login + cookies |
+| `GET /api/auth/me` | Current user |
+| `GET/POST /api/jobs` | List/create jobs |
+| `GET /api/jobs/:id/matches` | Matching engine |
+| `POST /api/allocations` | Allocate candidate to job |
+| `GET/POST /api/bench-candidates` | Bench CRUD |
+| `POST /api/upload/candidates` | Excel upload (.xlsx, .xls, .csv) |
+| `GET/POST /api/courses` | Course catalog |
+| `GET/POST /api/course-assignments` | Assignments |
+| `POST /api/nudge` | Send nudge notification |
+| `GET /api/reports/overview` | RM analytics |
+| `GET /api/rm/dashboard` | RM dashboard data |
+| `POST /api/job-applications` | USER apply to job |
+
+## Excel Upload Columns
+
+`name`, `email`, `skills` (comma-separated), `experience`, `location`, `benchDays`, `noticePeriodDays`, `status`, `role`
+
+## Architecture
+
+```
+src/lib/
+  models/          # Mongoose schemas
+  repositories/    # Data access
+  services/        # Business logic (matching, allocation, reports, upload)
+  validations/     # Zod schemas
+  api/handler.ts   # Auth + validation wrapper
+src/hooks/         # useAuth, useApi
+```

@@ -5,12 +5,19 @@ import { ReactNode } from "react";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 
+import { UserRole } from "@/constants/roles";
+
 interface DashboardShellProps {
   children: ReactNode;
 }
 
-export default function DashboardShell({ children }: DashboardShellProps) {
+export default function DashboardShell({
+  children,
+}: DashboardShellProps): React.JSX.Element {
   const NAVBAR_HEIGHT = 56;
+
+  // TODO: Replace with session/auth role
+  const role = UserRole.USER;
 
   return (
     <div style={{ minHeight: "100vh" }}>
@@ -46,7 +53,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             borderRight: "1px solid #E5E7EB",
           }}
         >
-          <Sidebar />
+          <Sidebar role={role} />
         </div>
 
         {/* MAIN CONTENT */}

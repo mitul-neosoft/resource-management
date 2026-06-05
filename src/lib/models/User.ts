@@ -1,11 +1,12 @@
 import mongoose, { Schema, type Model } from "mongoose";
+import { UserRole } from "@/constants/roles";
 
 export interface IUser {
   firstName: string;
   lastName: string;
   email: string;
   password: string;
-  role: string;
+  role: UserRole;
   isActive: boolean;
   employeeId?: string;
   designation?: string;
@@ -27,7 +28,11 @@ const UserSchema = new Schema<IUser>(
       trim: true,
     },
     password: { type: String, required: true },
-    role: { type: String, default: "employee" },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.USER,
+    },
     isActive: { type: Boolean, default: true },
     employeeId: { type: String },
     designation: { type: String },
