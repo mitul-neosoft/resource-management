@@ -14,7 +14,7 @@ const CourseAssignmentSchema = new Schema<ICourseAssignment>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     courseId: { type: Schema.Types.ObjectId, ref: "Course", required: true },
-    candidateId: { type: Schema.Types.ObjectId, ref: "BenchCandidate" },
+    candidateId: { type: Schema.Types.ObjectId, ref: "User" },
     progress: { type: Number, default: 0, min: 0, max: 100 },
     status: { type: String, default: "In Progress" },
   },

@@ -12,7 +12,7 @@ export default function Navbar({ user }: NavbarProps): React.JSX.Element {
   const router = useRouter();
   const name = user ? `${user.firstName} ${user.lastName}` : "User";
   const initials = user
-    ? `${user.firstName[0] || ""}${user.lastName[0] || ""}`.toUpperCase()
+    ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase()
     : "U";
 
   const handleLogout = async () => {

@@ -26,12 +26,14 @@ interface Candidate {
 export default function BenchPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+ 
   const { data, loading, error, reload } = useApi<{ candidates: Candidate[] }>(
     `/api/bench-candidates?sort=benchDays`,
   );
 
   const candidates = data?.candidates ?? [];
   console.log(candidates);
+
   const filtered = useMemo(() => {
     let list = [...candidates];
     if (search) {

@@ -162,7 +162,7 @@ export default function RmJobsPage() {
         ))}
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2 grid grid-cols-2 gap-2">
         {jobs.length === 0 ? (
           <p className="text-gray-500">
             No jobs yet. Upload Excel or create a job.
@@ -233,75 +233,66 @@ export default function RmJobsPage() {
                 </div>
               </div>
 
-              {showMatch === job._id && (
-                <div className="mt-4 border-t pt-4">
-                  {matchLoading ? (
-                    <p className="text-sm text-gray-500">Loading matches...</p>
-                  ) : matches.length === 0 ? (
-                    <p className="text-sm font-medium text-gray-600">
-                      No profile matched for this requirement
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {matches.map((m) => (
-                        <div
-                          key={m._id}
-                          className="rounded-lg border bg-gray-50 p-4"
-                        >
-                          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                            <div>
-                              <p className="font-semibold">
-                                {m.candidate.name}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {m.candidate.location} ·{" "}
-                                {m.candidate.experience} ·{" "}
-                                {m.candidate.benchDays ?? 0}d bench
-                                {m.candidate.noticeDaysLeft !== null &&
-                                  ` · ${m.candidate.noticeDaysLeft}d notice`}
-                              </p>
-                              <p className="mt-2 text-sm">
-                                <span className="font-bold text-green-700">
-                                  {m.score}% match
-                                </span>
-                              </p>
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {m.matchedSkills.map((s) => (
-                                  <span
-                                    key={s}
-                                    className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800"
-                                  >
-                                    ✓ {s}
-                                  </span>
-                                ))}
-                                {m.missingSkills.map((s) => (
-                                  <span
-                                    key={s}
-                                    className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-800"
-                                  >
-                                    ✗ {s}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => allocate(m.candidate._id, job._id)}
-                              className="shrink-0 rounded-lg bg-red-600 px-3 py-1 text-sm text-white"
-                            >
-                              Allocate
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
           ))
         )}
       </div>
+
+      {showMatch !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">
+                Matches — {jobs.find((j) => j._id === showMatch)?.title}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowMatch(null)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+            {matchLoading ? (
+              <p className="text-sm text-gray-500">Loading matches...</p>
+            ) : matches.length === 0 ? (
+              <p className="text-sm font-medium text-gray-600">No profile matched for this requirement</p>
+            ) : (
+              <div className="space-y-3">
+                {matches.map((m) => (
+                  <div key={m._id} className="rounded-lg border bg-gray-50 p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-semibold">{m.candidate.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {m.candidate.location} · {m.candidate.experience} · {m.candidate.benchDays ?? 0}d bench
+                          {m.candidate.noticeDaysLeft !== null && ` · ${m.candidate.noticeDaysLeft}d notice`}
+                        </p>
+                        <p className="mt-2 text-sm font-bold text-green-700">{m.score}% match</p>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {m.matchedSkills.map((s) => (
+                            <span key={s} className="rounded bg-green-100 px-2 py-0.5 text-xs text-green-800">✓ {s}</span>
+                          ))}
+                          {m.missingSkills.map((s) => (
+                            <span key={s} className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-800">✗ {s}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => allocate(m.candidate._id, showMatch)}
+                        className="shrink-0 rounded-lg bg-red-600 px-3 py-1 text-sm text-white"
+                      >
+                        Allocate
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

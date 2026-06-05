@@ -17,7 +17,7 @@ export default function Navbar(): React.JSX.Element {
         const full = `${data.user.firstName} ${data.user.lastName}`;
         setName(full);
         setInitials(
-          `${data.user.firstName[0] || ""}${data.user.lastName[0] || ""}`.toUpperCase()
+          `${data.user.firstName?.[0] || ""}${data.user.lastName?.[0] || ""}`.toUpperCase()
         );
       })
       .catch(() => {});

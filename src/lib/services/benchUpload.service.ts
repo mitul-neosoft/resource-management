@@ -16,6 +16,8 @@ interface BenchRow {
   Location?: string;
   Details?: string;
   "Bench Age"?: string | number;
+  "Bench Days"?: string | number;
+  "Contract End Date"?: string | number;
   "Resigned On?"?: string;
   Domestic?: string;
   "L&D Ongoing"?: string;
@@ -25,11 +27,19 @@ interface BenchRow {
 
 function parseExcelDate(value: string | number | undefined): Date | undefined {
   if (value === undefined || value === null || value === "") return undefined;
+  
+  // Skip Excel formula strings (e.g., "dateDiff(now())", "=TODAY()-90")
+  const stringValue = String(value).trim();
+  if (stringValue.startsWith("=") || stringValue.includes("(")) {
+    return undefined;
+  }
+  
   if (typeof value === "number") {
     const date = XLSX.SSF.parse_date_code(value);
     if (date) return new Date(date.y, date.m - 1, date.d);
   }
-  const d = new Date(String(value));
+  
+  const d = new Date(stringValue);
   return isNaN(d.getTime()) ? undefined : d;
 }
 
@@ -58,7 +68,7 @@ export async function processBenchUpload(
   fileName: string,
   uploadedBy: string
 ) {
-  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const workbook = XLSX.read(buffer, { type: "buffer", cellFormula: false, cellNF: false });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<BenchRow>(sheet, { defval: "" });
 
@@ -78,6 +88,17 @@ export async function processBenchUpload(
       const email = emailFromName(name, row.Email);
       const taggedOn = parseExcelDate(row["Candidate Tagged On"]);
       const resignDate = parseResignDate(row["Resigned On?"]);
+      
+      // Get contract end date or calculate from bench days
+      let contractEndDate = parseExcelDate(row["Contract End Date"]);
+      if (!contractEndDate) {
+        const benchDays = Number(row["Bench Days"] || row["Bench Age"] || 0);
+        if (benchDays > 0) {
+          contractEndDate = new Date();
+          contractEndDate.setDate(contractEndDate.getDate() - benchDays);
+          contractEndDate.setHours(0, 0, 0, 0);
+        }
+      }
 
       const existing = await userRepository.findByEmail(email);
 
@@ -99,7 +120,7 @@ export async function processBenchUpload(
         domestic: String(row.Domestic || ""),
         ldOngoing: String(row["L&D Ongoing"] || ""),
         candidateTaggedOn: taggedOn,
-        clientContractEndDate: taggedOn,
+        clientContractEndDate: contractEndDate,
         skills,
         resignDate,
         noticePeriodDays: 90,

@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+// Ensure all models are registered before any query runs
+import "@/lib/models/User";
+import "@/lib/models/BenchCandidate";
+import "@/lib/models/Job";
+import "@/lib/models/Match";
+import "@/lib/models/Allocation";
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 interface MongooseCache {

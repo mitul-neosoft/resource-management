@@ -8,6 +8,7 @@ export function normalizeDate(date: Date | string): Date {
 
 /** Bench days = today - clientContractEndDate (live, never stored) */
 export function calculateBenchDays(
+
   clientContractEndDate?: Date | string | null
 ): number | null {
   if (!clientContractEndDate) return null;

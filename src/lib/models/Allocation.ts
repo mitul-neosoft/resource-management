@@ -11,7 +11,7 @@ const AllocationSchema = new Schema<IAllocation>(
   {
     candidateId: {
       type: Schema.Types.ObjectId,
-      ref: "BenchCandidate",
+      ref: "User",
       required: true,
     },
     jobId: { type: Schema.Types.ObjectId, ref: "Job", required: true },

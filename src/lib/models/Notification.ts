@@ -15,7 +15,7 @@ export interface INotification {
 const NotificationSchema = new Schema<INotification>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User" },
-    candidateId: { type: Schema.Types.ObjectId, ref: "BenchCandidate" },
+    candidateId: { type: Schema.Types.ObjectId, ref: "User" },
     courseAssignmentId: {
       type: Schema.Types.ObjectId,
       ref: "CourseAssignment",
