@@ -1,10 +1,10 @@
-import jwt, { type JwtPayload } from "jsonwebtoken";
+import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
 import { UserRole } from "@/constants/roles";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev-jwt-secret-change-me";
-const JWT_EXPIRY = "7d";
-const ACCESS_EXPIRY = "15m";
-const REFRESH_EXPIRY = "7d";
+const JWT_EXPIRY = (process.env.JWT_EXPIRES_IN || "7d") as SignOptions["expiresIn"];
+const ACCESS_EXPIRY = (process.env.JWT_ACCESS_EXPIRES_IN || "15m") as SignOptions["expiresIn"];
+const REFRESH_EXPIRY = (process.env.JWT_REFRESH_EXPIRES_IN || "7d") as SignOptions["expiresIn"];
 
 export interface TokenPayload {
   userId: string;
